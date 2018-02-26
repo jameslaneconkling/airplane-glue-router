@@ -12,8 +12,7 @@ const {
   getType,
   getLanguage,
   curie2uri,
-  uri2curie,
-  context: { xsd }
+  uri2curie
 } = require('../utils/rdf');
 require('rxjs/add/observable/of');
 require('rxjs/add/observable/merge');
@@ -40,7 +39,7 @@ exports.ResourcesFactory = (db, context) => {
             .map((count) => ({ subject, nonExistant: count === 0 }));
 
         })
-          .partition(R.prop('nonExistant'));
+        .partition(R.prop('nonExistant'));
 
       // TODO - should be possible to group some of these lists in one db call
       // rather than computing the 3d cartesian product, and a running query for each

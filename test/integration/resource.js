@@ -245,15 +245,11 @@ test('Resource: should allow requests to use uris in addition to curies', assert
     }
   };
 
-  // NOTE - all refs that point to objects will convert those objects' uris to curies if those objects are in the context namespace
+  // NOTE - all refs that point to objects will convert those objects' uris to curies if those uris are in the context namespace
   // if a subsequent request references those object's as uris, it will not hit the cache, causing a duplication, and possible inconsistency, in the graph
   // TODO - possible solutions:
   //   * forget curies entirely (and leave up to the implementing app to convert to/from when interacting w/ falcor model)
-  //   * implement a custom hook in falcor that converts uris to curies before hitting the cache/making requests
-  //   * specify the context in the client on model initialization, w/ the explicit caveat that when a uri has a corresponding curie namespace, not using the
-  //     curie format for all applicable uris could lead to inconsistencies (this is less surprising than the current scenario, b/c context is explicitly defined)
-  //     * however, would be nice to hot have to pass the context every time, as that adds request overhead.  maybe allow three/four settings: 'default', use middleware default;
-  //       'none': don't convert to curies, 'custom': overwrite w/ specified context, and 'extend': extend default w/ custom context
+  //   * move curie transformation into repo adapter layer
   request(app)
     .get(`/api/model.json?method=get&paths=${encodeURIComponent(JSON.stringify(paths))}`)
     .end((err, res) => {
@@ -521,7 +517,7 @@ test('Resource Ontology: should return ontology for resources', assert => {
     rdf:type a rdf:Property ;
         rdfs:label "type"  .
   `;
-  const model = setupFalcorTestModel(testDbFactory(seedN3)).batch();
+  const model = setupFalcorTestModel(testDbFactory(seedN3));
 
   const expectedResponse = {
     resource: {

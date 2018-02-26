@@ -39,7 +39,7 @@ exports.CollectionsFactory = (db, context) => ({
           .count()
           .map(count => ({ collection, nonExistant: count === 0 }));
       })
-        .partition(R.prop('nonExistant'));
+      .partition(R.prop('nonExistant'));
 
     const existantCollectionRanges$ = existantCollections$
       .mergeMap(({ collection }) => Observable.of(...ranges).map(range => ({ collection, range })))
