@@ -19,7 +19,6 @@
   "dependencies": {
     "body-parser": "^1.15.2",
     "express": "^4.14.1",
-    "falcor": "^1.1.0",
     "falcor-express": "^0.1.4",
     "falcor-router": "^0.8.0",
     "leveldown": "^1.6.0",
@@ -34,6 +33,7 @@
   "devDependencies": {
     "eslint": "^4.18.1",
     "falcor-supertest-datasource": "^1.1.0",
+    "falcor": "^1.1.0",
     "supertest": "^2.0.0",
     "tape": "^4.6.0"
   }
