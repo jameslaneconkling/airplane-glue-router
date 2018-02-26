@@ -32,20 +32,20 @@ npm run start
 ```bash
 # build
 npm run validate && \
-  docker build -t middlepacco:latest .
+  docker build -t airplane-glue-router:latest .
 
 # run
-docker rm -f middlepacco
+docker rm -f airplane-glue-router
 docker run -dit \
   -e NODE_ENV='production' \
   -p 3000:3000 \
   -v $(pwd)/seed.n3:/usr/src/seed.n3 \
-  --name middlepacco \
-  middlepacco
+  --name airplane-glue-router \
+  airplane-glue-router
 
 # login
-docker exec -it middlepacco sh
+docker exec -it airplane-glue-router sh
 
 # inspect
-docker inspect middlepacco
+docker inspect airplane-glue-router
 ```
