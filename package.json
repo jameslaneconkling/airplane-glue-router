@@ -21,7 +21,6 @@
     "express": "^4.14.1",
     "falcor-express": "^0.1.4",
     "falcor-router": "^0.8.0",
-    "fetch-ponyfill": "^5.0.1",
     "leveldown": "^1.6.0",
     "levelgraph": "^2.0.1",
     "levelgraph-n3": "^2.0.0",
