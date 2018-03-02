@@ -14,10 +14,12 @@ require('rxjs/add/operator/filter');
 require('rxjs/add/operator/do');
 require('rxjs/add/operator/distinct');
 require('rxjs/add/operator/reduce');
+require('rxjs/add/operator/toArray');
 const {
   prop,
   xprod,
   pipe,
+  propEq,
   not,
   equals
 } = require('ramda');
@@ -253,7 +255,42 @@ module.exports = ({ n3, context }) => {
           uri: uri2curie(context, type),
           label: getValue(label),
           lang: getLanguage(label)
-        }));
+        }))
+        .toArray();
+    },
+
+    getPredicates(types) {
+      return Observable.of(...types)
+        .mergeMap((type) => {
+          return fromNodeStream(
+            db.searchStream([
+              {
+                subject: db.v('subject'),
+                predicate: `${rdf}type`,
+                object: curie2uri(context, type)
+              },
+              {
+                subject: db.v('subject'),
+                predicate: db.v('predicate')
+              },
+              {
+                subject: db.v('predicate'),
+                predicate: `${skos}prefLabel`,
+                object: db.v('label')
+              }
+            ], { limit: 100 })
+          )
+            .distinct(prop('predicate'))
+            .filter(pipe(propEq('predicate', `${skos}prefLabel`), not()))
+            .reduce((acc, { predicate, label }) => {
+              acc.predicates.push({
+                uri: uri2curie(context, predicate),
+                label: getValue(label),
+                lang: getLanguage(label)
+              });
+              return acc;
+            }, { type, predicates: [] });
+        });
     }
   };
 };
