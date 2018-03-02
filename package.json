@@ -1,6 +1,6 @@
 {
   "name": "airplane-glue-router",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "airplane-glue router",
   "main": "app/index.js",
   "scripts": {
