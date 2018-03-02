@@ -1,5 +1,4 @@
 const test = require('tape');
-const { testDbFactory } = require('../../app/db');
 const {
   setupFalcorTestModel,
   deserializeGraphJSON
@@ -117,7 +116,7 @@ const assertFailure = assert => err => {
 
 test('Type Collection: should return predicate literal', assert => {
   assert.plan(1);
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {
@@ -145,7 +144,7 @@ test('Type Collection: should return predicate literal', assert => {
 
 test('Type Collection: should return nulls for range that overshoots collection length', assert => {
   assert.plan(1);
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {
@@ -170,7 +169,7 @@ test('Type Collection: should return nulls for range that overshoots collection 
 
 test('Type Collection: should return discontiguous ranges', assert => {
   assert.plan(1);
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {
@@ -204,7 +203,7 @@ test('Type Collection: should return discontiguous ranges', assert => {
 
 test('Type Collection: should return multiple predicate literals', assert => {
   assert.plan(1);
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {
@@ -240,7 +239,7 @@ test('Type Collection: should return multiple predicate literals', assert => {
 
 test('Type Collection: should return nulls for collections that don\'t exist', assert => {
   assert.plan(1);
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {
@@ -264,7 +263,7 @@ test('Type Collection: should return nulls for collections that don\'t exist', a
 
 test('Type Collection: should return the collection length', assert => {
   assert.plan(1);
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {
@@ -289,7 +288,7 @@ test('Type Collection: should return the collection length', assert => {
 });
 
 
-test('Type Collection Ontology: should return ontology for type collection', assert => {
+test.skip('Type Collection Ontology: should return ontology for type collection', assert => {
   assert.plan(1);
   const seedN3 = `
     @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -311,7 +310,7 @@ test('Type Collection Ontology: should return ontology for type collection', ass
     schema:gender a rdf:Property ;
         rdfs:label "gender" .
   `;
-  const model = setupFalcorTestModel(testDbFactory(seedN3));
+  const model = setupFalcorTestModel(seedN3);
 
   const expectedResponse = {
     collection: {

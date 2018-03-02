@@ -10,9 +10,22 @@ const {
   omit
 } = require('ramda');
 const SuperTestDataSource = require('falcor-supertest-datasource');
+const makeMemoryRepository = require('../app/repositories/memory');
+const {
+  context
+} = require('../app/utils/rdf');
 
-exports.setupFalcorTestModel = db => {
-  const app = require('../app/app')(db);
+
+const setupTestRepos = exports.setupTestRepos = (n3) => [{
+  name: 'memory',
+  domains: [/.*/],
+  repository: makeMemoryRepository({ n3, context })
+}];
+
+
+exports.setupFalcorTestModel = (n3) => {
+  const app = require('../app/app')(setupTestRepos(n3));
+
   return new falcor.Model({
     source: new SuperTestDataSource('/api/model.json', app)
   });

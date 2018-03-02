@@ -122,7 +122,7 @@ const assertFailure = assert => err => {
 };
 
 
-test('Inverse OP: should return subject in ?PO GET for resource object', assert => {
+test.skip('Inverse OP: should return subject in ?PO GET for resource object', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(testDbFactory(seedN3));
 
@@ -148,7 +148,7 @@ test('Inverse OP: should return subject in ?PO GET for resource object', assert 
     }, assertFailure(assert));
 });
 
-test('Inverse OP: should return subject in ?PO GET for literal object', assert => {
+test.skip('Inverse OP: should return subject in ?PO GET for literal object', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(testDbFactory(seedN3));
 
@@ -172,7 +172,7 @@ test('Inverse OP: should return subject in ?PO GET for literal object', assert =
 });
 
 
-test('Inverse OP: should return singleton subject in ?PO GET', assert => {
+test.skip('Inverse OP: should return singleton subject in ?PO GET', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(testDbFactory(seedN3));
 
