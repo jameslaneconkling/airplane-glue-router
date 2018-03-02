@@ -3,6 +3,7 @@ const Router = require('falcor-router');
 const collectionRoutes = require('./typeCollection');
 const resourceRoutes = require('./resource');
 const inverseRoutes = require('./inverse');
+const sourceRoutes = require('./source');
 
 
 module.exports = (repos) => {
@@ -14,7 +15,8 @@ module.exports = (repos) => {
   const BaseRouter = Router.createClass([
     ...collectionRoutes(repos),
     ...resourceRoutes(repos),
-    ...inverseRoutes(repos)
+    ...inverseRoutes(repos),
+    ...sourceRoutes(repos)
   ]);
 
   return FalcorServer.dataSourceRoute((req, res) => {
