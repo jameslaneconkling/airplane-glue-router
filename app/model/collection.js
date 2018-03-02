@@ -108,8 +108,6 @@ exports.CollectionsFactory = (db, context) => ({
   },
 
   getOntologiesList(collections) {
-    console.log(collections);
-
     return Observable.of(...collections)
       .mergeMap((collection) => {
         return fromNodeStream(

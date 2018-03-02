@@ -1,3 +1,4 @@
+const assert = require('assert');
 const levelup = require('levelup');
 const levelgraph = require('levelgraph');
 const levelgraphN3 = require('levelgraph-n3');
@@ -55,6 +56,9 @@ const makeMemoryTripleStore = (n3) => {
 
 
 module.exports = ({ n3, context }) => {
+  assert(typeof n3 === 'string', 'memory repository requires a n3 string on initialization');
+  assert(typeof context === 'object', 'memory repository requires a context object on initialization');
+
   const db = makeMemoryTripleStore(n3);
 
   return {

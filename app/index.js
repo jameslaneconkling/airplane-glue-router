@@ -10,12 +10,11 @@ const {
 } = require('./utils/rdf');
 
 
-
 const repos = [
   {
-    name: 'user',
-    domains: [/$data/],
-    repository: makeMemoryRepository({ ns: readFileSync(DEV_SEED), context })
+    name: 'memory',
+    domains: [/.*/],
+    repository: makeMemoryRepository({ n3: readFileSync(DEV_SEED, 'utf8'), context })
     // repository: makeRemoteRepository(process.env.DBPEDIA_BASEURL)
   }
 ];
