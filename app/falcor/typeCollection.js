@@ -1,14 +1,7 @@
-const Observable = require('rxjs/Observable').Observable;
-const {
-  CollectionsFactory
-} = require('../model/collection');
 const {
   $ref,
   $atom
 } = require('../utils/falcor');
-require('rxjs/add/observable/of');
-require('rxjs/add/operator/map');
-require('rxjs/add/operator/mergeMap');
 
 
 module.exports = (repos) => ([

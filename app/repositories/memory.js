@@ -234,6 +234,27 @@ module.exports = ({ n3, context }) => {
             }, { collection, list: [] });
         });
     },
+
+    getTypes() {
+      return fromNodeStream(
+        db.searchStream([
+          {
+            predicate: `${rdf}type`,
+            object: db.v('type')
+          },
+          {
+            subject: db.v('type'),
+            predicate: `${skos}prefLabel`,
+            object: db.v('label')
+          }
+        ])
+      )
+        .map(({ type, label }) => ({
+          uri: uri2curie(context, type),
+          label: getValue(label),
+          lang: getLanguage(label)
+        }));
+    }
   };
 };
 
