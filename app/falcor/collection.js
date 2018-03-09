@@ -1,14 +1,33 @@
+const Observable = require('rxjs/Observable').Observable;
+require('rxjs/add/observable/of');
+require('rxjs/add/operator/map');
+require('rxjs/add/operator/mergeMap');
+const {
+  compose,
+  prop,
+  find,
+  propEq,
+} = require('ramda');
 const {
   $ref,
   $atom
 } = require('../utils/falcor');
 
+const getRepositoryByName = (repoName, repos) => compose(
+  prop('repository'),
+  find(propEq('name', repoName))
+)(repos);
 
 module.exports = (repos) => ([
   {
     route: 'collection[{keys:collections}][{ranges:ranges}]',
     get({ collections, ranges }) {
-      return repos[0].repository.search(collections, ranges)
+      return Observable.of(...collections)
+        .mergeMap((collection) => {
+          const { repository, type, } = JSON.parse(collection);
+          // TODO - can be made more efficient by grouping types
+          return getRepositoryByName(repository, repos).search([type], ranges);
+        })
         .map(({ nonExistant, collection, collectionIdx, subject }) => {
           if (nonExistant) {
             return {
@@ -27,7 +46,11 @@ module.exports = (repos) => ([
   {
     route: 'collection[{keys:collections}].length',
     get({ collections }) {
-      return repos[0].repository.searchCount(collections)
+      return Observable.of(...collections)
+        .mergeMap((collection) => {
+          const { repository, type, } = JSON.parse(collection);
+          return getRepositoryByName(repository, repos).searchCount([type]);
+        })
         .map(({ collection, length }) => {
           return {
             path: ['collection', collection, 'length'],

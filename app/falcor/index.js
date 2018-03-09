@@ -1,6 +1,6 @@
 const FalcorServer = require('falcor-express');
 const Router = require('falcor-router');
-const collectionRoutes = require('./typeCollection');
+const collectionRoutes = require('./collection');
 const resourceRoutes = require('./resource');
 const inverseRoutes = require('./inverse');
 const ontologyRoutes = require('./ontology');
