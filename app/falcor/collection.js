@@ -3,20 +3,18 @@ require('rxjs/add/observable/of');
 require('rxjs/add/operator/map');
 require('rxjs/add/operator/mergeMap');
 const {
-  compose,
-  prop,
-  find,
-  propEq,
+  merge
 } = require('ramda');
+const {
+  serializeCollection,
+  deserializeCollection,
+  getRepositoryByName,
+} = require('../utils/repository');
 const {
   $ref,
   $atom
 } = require('../utils/falcor');
 
-const getRepositoryByName = (repoName, repos) => compose(
-  prop('repository'),
-  find(propEq('name', repoName))
-)(repos);
 
 module.exports = (repos) => ([
   {
@@ -24,20 +22,22 @@ module.exports = (repos) => ([
     get({ collections, ranges }) {
       return Observable.of(...collections)
         .mergeMap((collection) => {
-          const { repository, type, } = JSON.parse(collection);
+          const { repository, type, } = deserializeCollection(collection);
           // TODO - can be made more efficient by grouping types
-          return getRepositoryByName(repository, repos).search([type], ranges);
+          return getRepositoryByName(repository, repos)
+            .search([type], ranges)
+            .map(merge({ repository }));
         })
-        .map(({ nonExistant, collection, collectionIdx, subject }) => {
+        .map(({ repository, type, nonExistant, collectionIdx, subject }) => {
           if (nonExistant) {
             return {
-              path: ['collection', collection],
+              path: ['collection', serializeCollection(repository, type)],
               value: null
             };
           }
 
           return {
-            path: ['collection', collection, collectionIdx],
+            path: ['collection', serializeCollection(repository, type), collectionIdx],
             value: typeof subject === 'undefined' ? null : $ref(['resource', subject])
           };
         });
@@ -48,12 +48,13 @@ module.exports = (repos) => ([
     get({ collections }) {
       return Observable.of(...collections)
         .mergeMap((collection) => {
-          const { repository, type, } = JSON.parse(collection);
-          return getRepositoryByName(repository, repos).searchCount([type]);
+          const { repository, type, } = deserializeCollection(collection);
+          return getRepositoryByName(repository, repos).searchCount([type])
+            .map(({ type, length }) => ({ repository, type, length }));
         })
-        .map(({ collection, length }) => {
+        .map(({ repository, type, length }) => {
           return {
-            path: ['collection', collection, 'length'],
+            path: ['collection', serializeCollection(repository, type), 'length'],
             value: typeof length === 'undefined' ? null : length
           };
         });

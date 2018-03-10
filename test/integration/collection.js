@@ -3,6 +3,9 @@ const {
   setupFalcorTestModel,
   deserializeGraphJSON
 } = require('../helpers');
+const {
+  serializeCollection
+} = require('../../app/utils/repository');
 
 const {
   context: { rdfs, xsd, schema, skos }
@@ -114,13 +117,14 @@ const assertFailure = assert => err => {
 };
 
 
-test('Type Collection: should return predicate literal', assert => {
+test('Collection: should return predicate literal', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
 
   const expectedResponse = {
     collection: {
-      'schema:Person': {
+      [collection]: {
         0: {
           'rdfs:label': {
             0: 'James Conkling'
@@ -135,20 +139,21 @@ test('Type Collection: should return predicate literal', assert => {
     }
   };
 
-  model.get(['collection', 'schema:Person', { to: 1 }, 'rdfs:label', 0])
+  model.get(['collection', collection, { to: 1 }, 'rdfs:label', 0])
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
     }, assertFailure(assert));
 });
 
 
-test('Type Collection: should return nulls for range that overshoots collection length', assert => {
+test('Collection: should return nulls for range that overshoots collection length', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
 
   const expectedResponse = {
     collection: {
-      'schema:Person': {
+      [collection]: {
         4: {
           'rdfs:label': {
             0: 'Tim Conkling'
@@ -160,20 +165,21 @@ test('Type Collection: should return nulls for range that overshoots collection 
     }
   };
 
-  model.get(['collection', 'schema:Person', { from: 4, to: 6 }, 'rdfs:label', 0])
+  model.get(['collection', collection, { from: 4, to: 6 }, 'rdfs:label', 0])
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
     }, assertFailure(assert));
 });
 
 
-test('Type Collection: should return discontiguous ranges', assert => {
+test('Collection: should return discontiguous ranges', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
 
   const expectedResponse = {
     collection: {
-      'schema:Person': {
+      [collection]: {
         0: {
           'schema:alternateName': {
             0: 'JLC'
@@ -194,20 +200,21 @@ test('Type Collection: should return discontiguous ranges', assert => {
     }
   };
 
-  model.get(['collection', 'schema:Person', [{ to: 1 }, { from: 4, to: 5 }], 'schema:alternateName', 0])
+  model.get(['collection', collection, [{ to: 1 }, { from: 4, to: 5 }], 'schema:alternateName', 0])
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
     }, assertFailure(assert));
 });
 
 
-test('Type Collection: should return multiple predicate literals', assert => {
+test('Collection: should return multiple predicate literals', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
 
   const expectedResponse = {
     collection: {
-      'schema:Person': {
+      [collection]: {
         0: {
           'schema:alternateName': {
             0: 'JLC',
@@ -230,44 +237,47 @@ test('Type Collection: should return multiple predicate literals', assert => {
     }
   };
 
-  model.get(['collection', 'schema:Person', { to: 2 }, 'schema:alternateName', { to: 1 }])
+  model.get(['collection', collection, { to: 2 }, 'schema:alternateName', { to: 1 }])
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
     }, assertFailure(assert));
 });
 
 
-test('Type Collection: should return nulls for collections that don\'t exist', assert => {
+test('Collection: should return nulls for collections that don\'t exist', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
+  const nonExistantCollection = serializeCollection('test', 'not:aType');
 
   const expectedResponse = {
     collection: {
-      'schema:Person': {
+      [collection]: {
         0: {
           'rdfs:label': {
             0: 'James Conkling'
           }
         }
       },
-      'not:AType': null
+      [nonExistantCollection]: null
     }
   };
 
-  model.get(['collection', ['schema:Person', 'not:AType'], 0, 'rdfs:label', 0])
+  model.get(['collection', [collection, nonExistantCollection], 0, 'rdfs:label', 0])
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
     }, assertFailure(assert));
 });
 
 
-test('Type Collection: should return the collection length', assert => {
+test('Collection: should return the collection length', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
 
   const expectedResponse = {
     collection: {
-      'schema:Person': {
+      [collection]: {
         0: {
           'rdfs:label': {
             0: 'James Conkling'
@@ -279,8 +289,8 @@ test('Type Collection: should return the collection length', assert => {
   };
 
   model.get(
-    ['collection', 'schema:Person', 0, 'rdfs:label', 0],
-    ['collection', 'schema:Person', 'length']
+    ['collection', collection, 0, 'rdfs:label', 0],
+    ['collection', collection, 'length']
   )
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
@@ -288,7 +298,7 @@ test('Type Collection: should return the collection length', assert => {
 });
 
 
-test.skip('Type Collection Ontology: should return ontology for type collection', assert => {
+test.skip('Collection Ontology: should return ontology for type collection', assert => {
   assert.plan(1);
   const seedN3 = `
     @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -311,9 +321,10 @@ test.skip('Type Collection Ontology: should return ontology for type collection'
         rdfs:label "gender" .
   `;
   const model = setupFalcorTestModel(seedN3);
+  const collection = serializeCollection('test', 'schema:Person');
 
   const expectedResponse = {
-    collection: {
+    [collection]: {
       'schema:Person': {
         ontology: {
           0: {
@@ -348,9 +359,9 @@ test.skip('Type Collection Ontology: should return ontology for type collection'
   };
 
   model.get(
-    ['collection', 'schema:Person', 'ontology', { to: 3 }, 'count'],
-    ['collection', 'schema:Person', 'ontology', { to: 3 }, 'predicate', 'rdfs:label', 0],
-    ['collection', 'schema:Person', 'ontology', 'length']
+    ['collection', collection, 'ontology', { to: 3 }, 'count'],
+    ['collection', collection, 'ontology', { to: 3 }, 'predicate', 'rdfs:label', 0],
+    ['collection', collection, 'ontology', 'length']
   )
     .subscribe(res => {
       assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);

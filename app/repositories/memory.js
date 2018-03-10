@@ -139,35 +139,35 @@ module.exports = ({ n3, context }) => {
     // TODO
     // getLabels()
 
-    search(collections, ranges) {
+    search(types, ranges) {
       const [
         nonExistantCollections$,
         existantCollections$
-      ] = Observable.of(...collections)
-        .mergeMap(collection => {
+      ] = Observable.of(...types)
+        .mergeMap((type) => {
           return fromNodeStream(
             db.getStream({
               predicate: `${rdf}type`,
-              object: curie2uri(context, collection),
+              object: curie2uri(context, type),
               limit: 1
             })
           )
             .count()
-            .map(count => ({ collection, nonExistant: count === 0 }));
+            .map(count => ({ type, nonExistant: count === 0 }));
         })
         .partition(prop('nonExistant'));
 
       const existantCollectionRanges$ = existantCollections$
-        .mergeMap(({ collection }) => (
-          Observable.of(...ranges).map(range => ({ collection, range }))
+        .mergeMap(({ type }) => (
+          Observable.of(...ranges).map(range => ({ type, range }))
         ))
-        .mergeMap(({ collection, range }) => {
+        .mergeMap(({ type, range }) => {
           const { offset, limit, levelGraphLimit } = range2LimitOffset(range);
 
           const db$ = fromNodeStream(
             db.getStream({
               predicate: `${rdf}type`,
-              object: curie2uri(context, collection),
+              object: curie2uri(context, type),
               limit: levelGraphLimit,
               offset
             })
@@ -175,7 +175,7 @@ module.exports = ({ n3, context }) => {
 
           return takeExactly(db$, limit)
             .map(({ subject }, idx) => ({
-              collection,
+              type,
               collectionIdx: offset + idx,
               subject: uri2curie(context, subject)
             }));
@@ -187,17 +187,17 @@ module.exports = ({ n3, context }) => {
       );
     },
 
-    searchCount(collections) {
-      return Observable.of(...collections)
-        .mergeMap(collection => {
+    searchCount(types) {
+      return Observable.of(...types)
+        .mergeMap((type) => {
           return fromNodeStream(
             db.getStream({
               predicate: `${rdf}type`,
-              object: curie2uri(context, collection)
+              object: curie2uri(context, type)
             })
           )
             .count()
-            .map(length => ({ collection, length }));
+            .map((length) => ({ type, length }));
         });
     },
 

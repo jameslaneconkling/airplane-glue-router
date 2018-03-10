@@ -17,7 +17,7 @@ const {
 
 
 const setupTestRepos = exports.setupTestRepos = (n3) => [{
-  name: 'memory',
+  name: 'test',
   domains: [/.*/],
   repository: makeMemoryRepository({ n3, context })
 }];
