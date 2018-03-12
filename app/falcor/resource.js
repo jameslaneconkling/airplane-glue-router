@@ -10,7 +10,7 @@ const {
 } = require('../utils/falcor');
 const {
   groupUrisByRepo
-} = require('../repositories/make');
+} = require('../utils/repository');
 
 
 module.exports = (repos) => ([
