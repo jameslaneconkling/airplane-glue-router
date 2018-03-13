@@ -3,6 +3,7 @@ const {
 } = require('fs');
 const createApp = require('./app');
 const makeMemoryRepository = require('./repositories/memory');
+const makeRemoteRepository = require('./repositories/remote');
 const PORT = process.env.PORT || 3000;
 const DEV_SEED = process.env.DEV_SEED || `${__dirname}/../seed.n3`;
 const {
@@ -16,6 +17,11 @@ const repos = [
     domains: [/.*/],
     repository: makeMemoryRepository({ n3: readFileSync(DEV_SEED, 'utf8'), context })
     // repository: makeRemoteRepository(process.env.DBPEDIA_BASEURL)
+  },
+  {
+    name: 'wikipedia',
+    domains: [/http:\/\/dbpedia\.org/],
+    repository: makeRemoteRepository({ baseurl: 'http://localhost:3030/dbpedia', context }),
   }
 ];
 

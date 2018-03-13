@@ -16,7 +16,7 @@ module.exports = (repos) => {
   ]);
 
   return FalcorServer.dataSourceRoute((req, res) => {
-    res.type('json');
+    // res.type('json');
     return new BaseRouter();
   });
 };
