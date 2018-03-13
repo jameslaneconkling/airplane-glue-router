@@ -6,7 +6,6 @@ const {
   find,
   prop,
   propEq,
-  xprod
 } = require('ramda');
 const {
   $atom

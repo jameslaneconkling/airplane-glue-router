@@ -21,7 +21,6 @@ const {
   pipe,
   propEq,
   not,
-  equals
 } = require('ramda');
 const {
   range2LimitOffset
@@ -198,42 +197,6 @@ module.exports = ({ n3, context }) => {
           )
             .count()
             .map((length) => ({ type, length }));
-        });
-    },
-
-    // TODO - replace searchOntologyList w/
-    // getTypes
-    // getPredicatesForType
-    searchOntologyList(collections) {
-      return Observable.of(...collections)
-        .mergeMap((collection) => {
-          return fromNodeStream(
-            db.searchStream([
-              {
-                subject: db.v('subject'),
-                predicate: `${rdf}type`,
-                object: curie2uri(context, collection)
-              },
-              {
-                subject: db.v('subject'),
-                predicate: db.v('predicate')
-              },
-              {
-                subject: db.v('predicate'),
-                predicate: `${skos}prefLabel`,
-                object: db.v('label')
-              }
-            ], { limit: 100 })
-          )
-            .distinct(prop('predicate'))
-            .filter(pipe(prop('predicate'), equals(`${skos}prefLabel`), not()))
-            .reduce((acc, { predicate, label }) => {
-              acc.list.push({
-                uri: uri2curie(context, predicate),
-                label: getValue(label)
-              });
-              return acc;
-            }, { collection, list: [] });
         });
     },
 

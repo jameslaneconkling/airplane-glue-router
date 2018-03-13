@@ -87,16 +87,16 @@ module.exports = (repos) => ([
   //       });
   //   }
   // },
-  {
-    route: 'collection[{keys:collections}].ontology.list',
-    get({ collections }) {
-      return repos[0].repository.searchOntologyList(collections)
-        .map(({ collection, list }) => {
-          return {
-            path: ['collection', collection, 'ontology', 'list'],
-            value: $atom(list)
-          };
-        });
-    }
-  }
+  // {
+  //   route: 'collection[{keys:collections}].ontology.list',
+  //   get({ collections }) {
+  //     return repos[0].repository.searchOntologyList(collections)
+  //       .map(({ collection, list }) => {
+  //         return {
+  //           path: ['collection', collection, 'ontology', 'list'],
+  //           value: $atom(list)
+  //         };
+  //       });
+  //   }
+  // }
 ]);
