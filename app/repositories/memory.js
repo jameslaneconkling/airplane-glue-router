@@ -103,8 +103,8 @@ module.exports = ({ n3, context }) => {
               return {
                 subject,
                 predicate,
-                objectIdx: offset + idx,
                 object: uri2curie(context, getValue(object)),
+                objectIdx: offset + idx,
                 type: uri2curie(context, getType(object)),
                 lang: getLanguage(object)
               };

@@ -1,3 +1,6 @@
+const Observable = require('rxjs/Observable').Observable;
+require('rxjs/add/observable/from');
+require('rxjs/add/operator/catch');
 const FalcorServer = require('falcor-express');
 const Router = require('falcor-router');
 const collectionRoutes = require('./collection');
@@ -16,7 +19,7 @@ module.exports = (repos) => {
   ]);
 
   return FalcorServer.dataSourceRoute((req, res) => {
-    // res.type('json');
+    res.type('json');
     return new BaseRouter();
   });
 };
