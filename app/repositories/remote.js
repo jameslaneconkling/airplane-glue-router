@@ -97,11 +97,14 @@ module.exports = ({ baseurl }) => {
         ))
         .map(([type, predicates]) => ({
           type,
-          predicates: predicates.map(({ property, label, lang }) => ({
-            uri: property,
-            label,
-            lang
-          }))
+          predicates: [
+            { uri: 'skos:prefLabel', label: 'Label', lang: 'en', },
+            ...predicates .map(({ property, label, lang }) => ({
+              uri: property,
+              label,
+              lang
+            }))
+          ]
         }));
     },
   };

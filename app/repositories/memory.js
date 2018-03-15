@@ -195,7 +195,6 @@ module.exports = ({ n3, }) => {
             ], { limit: 100 })
           )
             .distinct(prop('predicate'))
-            .filter(pipe(propEq('predicate', `${skos}prefLabel`), not()))
             .reduce((acc, { predicate, label }) => {
               acc.predicates.push({
                 uri: predicate,
