@@ -49,7 +49,6 @@ module.exports = (repos) => ([
         .mergeMap((repoName) => {
           const repo = find(propEq('name', repoName), repos);
 
-          console.log(repositories, types, repos, repo);
           if (!repo) {
             return Observable.of({
               path: ['ontology', repoName],

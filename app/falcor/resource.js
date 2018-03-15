@@ -53,7 +53,6 @@ module.exports = (repos) => ([
     // TODO - perhaps the correct approach is to whitelist singleton predicates
     route: 'resource[{keys:uris}][{keys:predicates}]',
     get({ uris, predicates }) {
-      // return Resources.getTriples(uris, predicates, [{ from: 0, to: 0 }])
       return Observable.from(
         groupUrisByRepo(repos)(uris)
       )

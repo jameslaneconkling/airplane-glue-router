@@ -9,7 +9,8 @@ const context = {
   skos: 'http://www.w3.org/2004/02/skos/core#',
   dbo: 'http://dbpedia.org/ontology/',
   dbp: 'http://dbpedia.org/property/',
-  dbr: 'http://dbpedia.org/resource/'
+  dbr: 'http://dbpedia.org/resource/',
+  wd: 'http://www.wikidata.org/',
 };
 
 const getValue = object => object && object

@@ -19,7 +19,6 @@ const {
   uri2curie,
 } = require('../utils/rdf');
 
-const notNull = (x) => x !== null && x !== undefined;
 
 module.exports = ({ baseurl, context }) => {
   return {
@@ -39,13 +38,13 @@ module.exports = ({ baseurl, context }) => {
           body
         })
       )
-        .mergeMap((result) => Observable.from(compose(unnest, map(toPairs))(result)))
-        .filter(compose(notNull, nth(1)))
-        .map(([idx, { subject, predicate, object, }]) => ({
+        .mergeMap((result) => Observable.from(result))
+        .map(({ subject, predicate, object, label, index, }) => ({
           subject: uri2curie(context, subject),
           predicate: uri2curie(context, predicate),
           object: uri2curie(context, getValue(object)),
-          objectIdx: idx,
+          objectIdx: index,
+          label,
           type: uri2curie(context, getType(object))
         }));
     },
@@ -70,16 +69,42 @@ module.exports = ({ baseurl, context }) => {
         .mergeMap(([type, response]) => {
           // TODO - properly determine collectionIdx (requires upstream work on adapter layer)
           return Observable.of(...response)
-            .map(({ subject, label }, idx) => ({
+            .map(({ subject, label, index, }) => ({
               type,
-              collectionIdx: idx,
+              collectionIdx: index,
               subject: uri2curie(context, subject),
               label
             }));
         });
     },
     searchCount: (types) => {},
-    getTypes: () => {},
-    getPredicates: (type) => {},
+    getTypes: () => {
+      return Observable.from(
+        request({
+          url: `${baseurl}/types`,
+          method: 'GET',
+          json: true
+        })
+      )
+        .map((types) => (
+          types.map(({ class: classUri, label }) => ({
+            uri: classUri,
+            label
+          }))
+        ));
+    },
+    getPredicates: (type) => {
+      return Observable.from(
+        request({
+          url: `${baseurl}/properties/${type}`
+        })
+      )
+        .map((predicates) => (
+          predicates.map(({ property, label }) => ({
+            uri: property,
+            label
+          }))
+        ));
+    },
   };
 };

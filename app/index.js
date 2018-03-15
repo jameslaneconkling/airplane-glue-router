@@ -12,15 +12,15 @@ const {
 
 
 const repos = [
-  // {
-  //   name: 'memory',
-  //   domains: [/.*/],
-  //   repository: makeMemoryRepository({ n3: readFileSync(DEV_SEED, 'utf8'), context })
-  // },
+  {
+    name: 'memory',
+    domains: [/^data:/, /^schema:/, /^wd:/, /^skos:/],
+    repository: makeMemoryRepository({ n3: readFileSync(DEV_SEED, 'utf8'), context })
+  },
   {
     name: 'wikipedia',
-    domains: [/http:\/\/dbpedia\.org/],
-    repository: makeRemoteRepository({ baseurl: 'http://localhost:3030/dbpedia', context }),
+    domains: [/^dbr:/],
+    repository: makeRemoteRepository({ baseurl: 'http://localhost:3001/dbpedia', context }),
   }
 ];
 
