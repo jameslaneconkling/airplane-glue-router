@@ -14,9 +14,6 @@ const {
   $ref,
 } = require('../utils/falcor');
 const {
-  getValue,
-  getType,
-  getLanguage,
   curie2uri,
   uri2curie,
 } = require('../utils/rdf');
@@ -60,43 +57,4 @@ module.exports = (repos, context) => ([
         });
     }
   },
-  // {
-  //   route: 'collection[{keys:collections}].ontology[{ranges:ranges}]["predicate", "count"]',
-  //   get({ collections, ranges }) {
-  //     return Collections.getOntologies(collections, ranges)
-  //       .mergeMap(({ collection, ontologyIdx, predicate, count }) => {
-  //         return Observable.of({
-  //           path: ['collection', collection, 'ontology', ontologyIdx, 'predicate'],
-  //           value: $ref(['resource', predicate])
-  //         }, {
-  //           path: ['collection', collection, 'ontology', ontologyIdx, 'count'],
-  //           value: count
-  //         });
-  //       });
-  //   }
-  // },
-  // {
-  //   route: 'collection[{keys:collections}].ontology.length',
-  //   get({ collections }) {
-  //     return Collections.getOntologiesLength(collections)
-  //       .map(({ collection, length }) => {
-  //         return {
-  //           path: ['collection', collection, 'ontology', 'length'],
-  //           value: length
-  //         };
-  //       });
-  //   }
-  // },
-  // {
-  //   route: 'collection[{keys:collections}].ontology.list',
-  //   get({ collections }) {
-  //     return repos[0].repository.searchOntologyList(collections)
-  //       .map(({ collection, list }) => {
-  //         return {
-  //           path: ['collection', collection, 'ontology', 'list'],
-  //           value: $atom(list)
-  //         };
-  //       });
-  //   }
-  // }
 ]);

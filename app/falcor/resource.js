@@ -125,32 +125,5 @@ module.exports = (repos, context) => ([
           };
         });
     }
-  },
-  // {
-  //   route: 'resource[{keys:uris}].ontology[{ranges:ranges}]["predicate", "count"]',
-  //   get({ uris, ranges }) {
-  //     return Resources.getOntologies(uris, ranges)
-  //       .mergeMap(({ subject, ontologyIdx, predicate, count }) => {
-  //         return Observable.of({
-  //           path: ['resource', subject, 'ontology', ontologyIdx, 'predicate'],
-  //           value: $ref(['resource', predicate])
-  //         }, {
-  //           path: ['resource', subject, 'ontology', ontologyIdx, 'count'],
-  //           value: count
-  //         });
-  //       });
-  //   }
-  // },
-  // {
-  //   route: 'resource[{keys:uris}].ontology.length',
-  //   get({ uris }) {
-  //     return Resources.getOntologiesLength(uris)
-  //       .map(({ subject, length }) => {
-  //         return {
-  //           path: ['resource', subject, 'ontology', 'length'],
-  //           value: length
-  //         };
-  //       });
-  //   }
-  // }
+  }
 ]);

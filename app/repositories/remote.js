@@ -1,10 +1,5 @@
 const {
   xprod,
-  toPairs,
-  map,
-  nth,
-  compose,
-  unnest
 } = require('ramda');
 const request = require('request-promise-native');
 const Observable = require('rxjs/Observable').Observable;
