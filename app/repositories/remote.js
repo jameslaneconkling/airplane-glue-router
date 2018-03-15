@@ -82,18 +82,27 @@ module.exports = ({ baseurl }) => {
           }))
         ));
     },
-    getPredicates: (type) => {
-      return Observable.from(
-        request({
-          url: `${baseurl}/properties/${type}`
-        })
-      )
-        .map((predicates) => (
-          predicates.map(({ property, label }) => ({
+    getPredicates: (types) => {
+      return Observable.from(types)
+        .mergeMap((type) => (
+          Observable.from(
+            request({
+              url: `${baseurl}/properties`,
+              method: 'POST',
+              json: true,
+              body: { type, },
+            })
+          )
+            .map((predicates) => [type, predicates])
+        ))
+        .map(([type, predicates]) => ({
+          type,
+          predicates: predicates.map(({ property, label, lang }) => ({
             uri: property,
-            label
+            label,
+            lang
           }))
-        ));
+        }));
     },
   };
 };
