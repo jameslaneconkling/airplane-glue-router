@@ -13,45 +13,40 @@ require('rxjs/add/operator/map');
 require('rxjs/add/operator/mergeMap');
 require('rxjs/add/operator/partition');
 const {
-  getValue,
   getType,
-  curie2uri,
-  uri2curie,
 } = require('../utils/rdf');
 
 
-module.exports = ({ baseurl, context }) => {
+module.exports = ({ baseurl }) => {
   return {
     getTriples: (subjects, predicates, ranges) => {
-      const body = xprod(subjects, predicates)
-        .map(([subject, predicate]) => ({
-          subject: curie2uri(context, subject),
-          predicate: curie2uri(context, predicate),
-          ranges
-        }));
-
       return Observable.from(
         request({
           url: `${baseurl}/facts`,
           method: 'POST',
           json: true,
-          body
+          body: xprod(subjects, predicates)
+            .map(([subject, predicate]) => ({
+              subject,
+              predicate,
+              ranges
+            }))
         })
       )
         .mergeMap((result) => Observable.from(result))
         .map(({ subject, predicate, object, label, index, }) => ({
-          subject: uri2curie(context, subject),
-          predicate: uri2curie(context, predicate),
-          object: uri2curie(context, getValue(object)),
+          subject,
+          predicate,
+          object,
           objectIdx: index,
           label,
-          type: uri2curie(context, getType(object))
+          type: getType(object)
         }));
     },
     getPredicateLengths: (subjects, predicates) => {},
     // getLabels: (subjects) => {},
     search: (types, ranges) => {
-      return Observable.of(...types)
+      return Observable.from(types)
         .mergeMap((type) => (
           Observable.from(
             request({
@@ -59,7 +54,7 @@ module.exports = ({ baseurl, context }) => {
               method: 'POST',
               json: true,
               body: {
-                type: curie2uri(context, type),
+                type,
                 ranges
               }
             })
@@ -67,11 +62,11 @@ module.exports = ({ baseurl, context }) => {
             .map((response) => [type, response])
         ))
         .mergeMap(([type, response]) => {
-          return Observable.of(...response)
+          return Observable.from(response)
             .map(({ subject, label, index, }) => ({
               type,
               collectionIdx: index,
-              subject: uri2curie(context, subject),
+              subject,
               label
             }));
         });

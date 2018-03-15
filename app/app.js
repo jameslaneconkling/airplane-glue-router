@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 
-module.exports = (repos) => {
+module.exports = (repos, context) => {
   const app = express();
 
   // Middleware
@@ -13,7 +13,7 @@ module.exports = (repos) => {
   app.use(bodyParser.urlencoded({ extended: false }));
 
   // Falcor endpoint
-  app.use('/api/model.json', require('./falcor')(repos));
+  app.use('/api/model.json', require('./falcor')(repos, context));
 
   // Error handling
   // app.use((err, req, res, next) => {

@@ -20,11 +20,11 @@ const repos = [
   {
     name: 'wikipedia',
     domains: [/^dbr:/],
-    repository: makeRemoteRepository({ baseurl: 'http://localhost:3001/dbpedia', context }),
+    repository: makeRemoteRepository({ baseurl: 'http://localhost:3001/dbpedia', }),
   }
 ];
 
-const app = createApp(repos);
+const app = createApp(repos, context);
 
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);

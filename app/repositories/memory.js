@@ -3,6 +3,7 @@ const levelup = require('levelup');
 const levelgraph = require('levelgraph');
 const levelgraphN3 = require('levelgraph-n3');
 const Observable = require('rxjs/Observable').Observable;
+require('rxjs/add/observable/from');
 require('rxjs/add/observable/of');
 require('rxjs/add/observable/merge');
 require('rxjs/add/operator/map');
@@ -21,6 +22,7 @@ const {
   pipe,
   propEq,
   not,
+  unnest,
 } = require('ramda');
 const {
   range2LimitOffset
@@ -55,6 +57,11 @@ const makeMemoryTripleStore = (n3) => {
   return db;
 };
 
+const cartesianProd = (a, b, c) => unnest(
+  xprod(a, b)
+    .map((list) => c.map((item) => ([...list, item])))
+);
+
 
 module.exports = ({ n3, context }) => {
   assert(typeof n3 === 'string', 'memory repository requires a n3 string on initialization');
@@ -63,36 +70,16 @@ module.exports = ({ n3, context }) => {
   const db = makeMemoryTripleStore(n3);
 
   return {
-    // TODO - should return triple length, preventing need for subsequent
-    // call to getPredicateLengths
+    // TODO - should return triple length, preventing need for subsequent call to getPredicateLengths
     getTriples(subjects, predicates, ranges) {
-      // TODO - possible to check existance of subjects in one db call?
-      const [nonExistantSubjects$, existantSubjects$] = Observable.of(...subjects)
-        .mergeMap((subject) => {
-          return fromNodeStream(
-            db.getStream({ subject: curie2uri(context, subject), limit: 1 })
-          )
-            .count()
-            .map((count) => ({ subject, nonExistant: count === 0 }));
-
-        })
-        .partition(prop('nonExistant'));
-
-      // TODO - should be possible to group some of these lists in one db call
-      // rather than computing the 3d cartesian product, and a running query for each
-      const existantTriples$ = existantSubjects$
-        .mergeMap(({ subject }) => (
-          Observable
-            .of(...xprod(predicates, ranges))
-            .map(([ predicate, range ]) => ({ subject, predicate, range }))
-        ))
-        .mergeMap(({ subject, predicate, range }) => {
+      return Observable.from(cartesianProd(subjects, predicates, ranges))
+        .mergeMap(([subject, predicate, range]) => {
           const { offset, limit, levelGraphLimit } = range2LimitOffset(range);
 
           const db$ = fromNodeStream(
             db.getStream({
-              subject: curie2uri(context, subject),
-              predicate: curie2uri(context, predicate),
+              subject,
+              predicate,
               limit: levelGraphLimit,
               offset
             })
@@ -103,18 +90,13 @@ module.exports = ({ n3, context }) => {
               return {
                 subject,
                 predicate,
-                object: uri2curie(context, getValue(object)),
+                object,
                 objectIdx: offset + idx,
-                type: uri2curie(context, getType(object)),
+                type: getType(object),
                 lang: getLanguage(object)
               };
             });
         });
-
-      return Observable.merge(
-        existantTriples$,
-        nonExistantSubjects$
-      );
     },
 
     getPredicateLengths(subjects, predicates) {
@@ -146,9 +128,9 @@ module.exports = ({ n3, context }) => {
           const db$ = fromNodeStream(
             db.getStream({
               predicate: `${rdf}type`,
-              object: curie2uri(context, type),
+              object: type,
               limit: levelGraphLimit,
-              offset
+              offset,
             })
           );
 
@@ -156,7 +138,7 @@ module.exports = ({ n3, context }) => {
             .map(({ subject }, idx) => ({
               type,
               collectionIdx: offset + idx,
-              subject: uri2curie(context, subject)
+              subject,
             }));
         });
     },
@@ -167,7 +149,7 @@ module.exports = ({ n3, context }) => {
           return fromNodeStream(
             db.getStream({
               predicate: `${rdf}type`,
-              object: curie2uri(context, type)
+              object: type
             })
           )
             .count()

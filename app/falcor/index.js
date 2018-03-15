@@ -9,13 +9,13 @@ const inverseRoutes = require('./inverse');
 const ontologyRoutes = require('./ontology');
 
 
-module.exports = (repos) => {
+module.exports = (repos, context) => {
   // TODO - log errors from routes to improve error visibility
   const BaseRouter = Router.createClass([
-    ...collectionRoutes(repos),
-    ...resourceRoutes(repos),
-    ...inverseRoutes(repos),
-    ...ontologyRoutes(repos)
+    ...collectionRoutes(repos, context),
+    ...resourceRoutes(repos, context),
+    ...inverseRoutes(repos, context),
+    ...ontologyRoutes(repos, context)
   ]);
 
   return FalcorServer.dataSourceRoute((req, res) => {

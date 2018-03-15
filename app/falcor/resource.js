@@ -11,37 +11,49 @@ const {
 const {
   groupUrisByRepo
 } = require('../utils/repository');
+const {
+  getValue,
+  curie2uri,
+  uri2curie,
+} = require('../utils/rdf');
 
 
-module.exports = (repos) => ([
+module.exports = (repos, context) => ([
   {
-    route: 'resource[{keys:uris}][{keys:predicates}][{ranges:ranges}]',
-    get({ uris, predicates, ranges }) {
+    route: 'resource[{keys:subjects}][{keys:predicates}][{ranges:ranges}]',
+    get({ subjects, predicates, ranges }) {
       return Observable.from(
-        groupUrisByRepo(repos)(uris)
+        groupUrisByRepo(repos)(subjects)
       )
-        .mergeMap(({ repository, uris }) => repository.getTriples(uris, predicates, ranges))
-        .map(({ nonExistant, subject, predicate, objectIdx, object, type, lang }) => {
-          if (nonExistant) {
+        .mergeMap(({ repository, uris }) => (
+          repository.getTriples(
+            uris.map((subject) => curie2uri(context, subject)),
+            predicates.map((predicate) => curie2uri(context, predicate)),
+            ranges
+          ))
+        )
+        .map(({ subject, predicate, objectIdx, object, type, lang }) => {
+          if (object === undefined) {
             return {
-              path: ['resource', subject],
-              value: null
-            };
-          } else if (typeof object === 'undefined') {
-            return {
-              path: ['resource', subject, predicate, objectIdx],
+              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), objectIdx],
               value: null
             };
           } else if (type === 'relationship') {
             return {
-              path: ['resource', subject, predicate, objectIdx],
-              value: $ref(['resource', object])
+              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), objectIdx],
+              value: $ref(['resource', uri2curie(context, getValue(object))])
             };
           }
 
           return {
-            path: ['resource', subject, predicate, objectIdx],
-            value: $atom(object, atomMetadata(type, lang))
+            path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), objectIdx],
+            value: $atom(
+              uri2curie(context, getValue(object)),
+              atomMetadata(
+                uri2curie(context, type),
+                lang
+              )
+            )
           };
         });
     }
@@ -56,28 +68,35 @@ module.exports = (repos) => ([
       return Observable.from(
         groupUrisByRepo(repos)(uris)
       )
-        .mergeMap(({ repository, uris }) => repository.getTriples(uris, predicates, [{ from: 0, to: 0 }]))
-        .map(({ nonExistant, subject, predicate, object, type, lang }) => {
-          if (nonExistant) {
+        .mergeMap(({ repository, uris }) => (
+          repository.getTriples(
+            uris.map((subject) => curie2uri(context, subject)),
+            predicates.map((predicate) => curie2uri(context, predicate)),
+            [{ from: 0, to: 0 }]
+          )
+        ))
+        .map(({ subject, predicate, object, type, lang }) => {
+          if (object === undefined) {
             return {
-              path: ['resource', subject],
-              value: null
-            };
-          } else if (typeof object === 'undefined') {
-            return {
-              path: ['resource', subject, predicate],
+              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate)],
               value: null
             };
           } else if (type === 'relationship') {
             return {
-              path: ['resource', subject, predicate],
-              value: $ref(['resource', object])
+              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate)],
+              value: $ref(['resource', uri2curie(context, getValue(object))])
             };
           }
 
           return {
-            path: ['resource', subject, predicate],
-            value: $atom(object, atomMetadata(type, lang))
+            path: ['resource', uri2curie(context, subject), uri2curie(context, predicate)],
+            value: $atom(
+              uri2curie(context, getValue(object)),
+              atomMetadata(
+                uri2curie(context, type),
+                lang
+              )
+            )
           };
         });
     }

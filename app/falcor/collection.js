@@ -13,9 +13,16 @@ const {
 const {
   $ref,
 } = require('../utils/falcor');
+const {
+  getValue,
+  getType,
+  getLanguage,
+  curie2uri,
+  uri2curie,
+} = require('../utils/rdf');
 
 
-module.exports = (repos) => ([
+module.exports = (repos, context) => ([
   {
     route: 'collection[{keys:collections}][{ranges:ranges}]',
     get({ collections, ranges }) {
@@ -24,20 +31,13 @@ module.exports = (repos) => ([
           const { repository, type, } = deserializeCollection(collection);
           // TODO - can be made more efficient by grouping types
           return getRepositoryByName(repository, repos)
-            .search([type], ranges)
+            .search([curie2uri(context, type)], ranges)
             .map(merge({ repository }));
         })
-        .map(({ repository, type, nonExistant, collectionIdx, subject }) => {
-          if (nonExistant) {
-            return {
-              path: ['collection', serializeCollection(repository, type)],
-              value: null
-            };
-          }
-
+        .map(({ repository, type, collectionIdx, subject }) => {
           return {
-            path: ['collection', serializeCollection(repository, type), collectionIdx],
-            value: typeof subject === 'undefined' ? null : $ref(['resource', subject])
+            path: ['collection', serializeCollection(repository, uri2curie(context, type)), collectionIdx],
+            value: typeof subject === 'undefined' ? null : $ref(['resource', uri2curie(context, subject)])
           };
         });
     }
@@ -48,12 +48,13 @@ module.exports = (repos) => ([
       return Observable.of(...collections)
         .mergeMap((collection) => {
           const { repository, type, } = deserializeCollection(collection);
-          return getRepositoryByName(repository, repos).searchCount([type])
+          return getRepositoryByName(repository, repos)
+            .searchCount([curie2uri(context, type)])
             .map(({ type, length }) => ({ repository, type, length }));
         })
         .map(({ repository, type, length }) => {
           return {
-            path: ['collection', serializeCollection(repository, type), 'length'],
+            path: ['collection', serializeCollection(repository, uri2curie(context, type)), 'length'],
             value: typeof length === 'undefined' ? null : length
           };
         });
