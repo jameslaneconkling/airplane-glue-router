@@ -38,7 +38,7 @@ module.exports = ({ baseurl }) => {
           subject,
           predicate,
           object,
-          objectIdx: index,
+          index,
           label,
           type: getType(object)
         }));

@@ -91,7 +91,7 @@ module.exports = ({ n3, context }) => {
                 subject,
                 predicate,
                 object,
-                objectIdx: offset + idx,
+                index: offset + idx,
                 type: getType(object),
                 lang: getLanguage(object)
               };

@@ -32,21 +32,21 @@ module.exports = (repos, context) => ([
             ranges
           ))
         )
-        .map(({ subject, predicate, objectIdx, object, type, lang }) => {
+        .map(({ subject, predicate, index, object, type, lang }) => {
           if (object === undefined) {
             return {
-              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), objectIdx],
+              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), index],
               value: null
             };
           } else if (type === 'relationship') {
             return {
-              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), objectIdx],
+              path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), index],
               value: $ref(['resource', uri2curie(context, getValue(object))])
             };
           }
 
           return {
-            path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), objectIdx],
+            path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), index],
             value: $atom(
               uri2curie(context, getValue(object)),
               atomMetadata(
@@ -63,10 +63,10 @@ module.exports = (repos, context) => ([
     // WARNING: This could throw off the cache, e.g. user requests ['resource', <uri>, <predicate>, <range>],
     // then requests ['resource', <uri>, <predicate>].  They will overwrite the range w/ a single value good/bad?
     // TODO - perhaps the correct approach is to whitelist singleton predicates
-    route: 'resource[{keys:uris}][{keys:predicates}]',
-    get({ uris, predicates }) {
+    route: 'resource[{keys:subjects}][{keys:predicates}]',
+    get({ subjects, predicates }) {
       return Observable.from(
-        groupUrisByRepo(repos)(uris)
+        groupUrisByRepo(repos)(subjects)
       )
         .mergeMap(({ repository, uris }) => (
           repository.getTriples(
