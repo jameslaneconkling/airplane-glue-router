@@ -139,28 +139,8 @@ module.exports = ({ n3, context }) => {
     // getLabels()
 
     search(types, ranges) {
-      const [
-        nonExistantCollections$,
-        existantCollections$
-      ] = Observable.of(...types)
-        .mergeMap((type) => {
-          return fromNodeStream(
-            db.getStream({
-              predicate: `${rdf}type`,
-              object: curie2uri(context, type),
-              limit: 1
-            })
-          )
-            .count()
-            .map(count => ({ type, nonExistant: count === 0 }));
-        })
-        .partition(prop('nonExistant'));
-
-      const existantCollectionRanges$ = existantCollections$
-        .mergeMap(({ type }) => (
-          Observable.of(...ranges).map(range => ({ type, range }))
-        ))
-        .mergeMap(({ type, range }) => {
+      return Observable.from(xprod(types, ranges))
+        .mergeMap(([ type, range ]) => {
           const { offset, limit, levelGraphLimit } = range2LimitOffset(range);
 
           const db$ = fromNodeStream(
@@ -179,11 +159,6 @@ module.exports = ({ n3, context }) => {
               subject: uri2curie(context, subject)
             }));
         });
-
-      return Observable.merge(
-        existantCollectionRanges$,
-        nonExistantCollections$
-      );
     },
 
     searchCount(types) {

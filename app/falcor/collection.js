@@ -12,7 +12,6 @@ const {
 } = require('../utils/repository');
 const {
   $ref,
-  $atom
 } = require('../utils/falcor');
 
 

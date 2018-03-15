@@ -67,7 +67,6 @@ module.exports = ({ baseurl, context }) => {
             .map((response) => [type, response])
         ))
         .mergeMap(([type, response]) => {
-          // TODO - properly determine collectionIdx (requires upstream work on adapter layer)
           return Observable.of(...response)
             .map(({ subject, label, index, }) => ({
               type,
