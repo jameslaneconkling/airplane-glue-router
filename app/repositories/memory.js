@@ -36,7 +36,6 @@ const {
   getType,
   getLanguage,
   curie2uri,
-  uri2curie,
   context: { rdf, skos }
 } = require('../utils/rdf');
 
@@ -172,7 +171,7 @@ module.exports = ({ n3, context }) => {
         ])
       )
         .map(({ type, label }) => ({
-          uri: uri2curie(context, type),
+          uri: type,
           label: getValue(label),
           lang: getLanguage(label)
         }))
@@ -187,7 +186,7 @@ module.exports = ({ n3, context }) => {
               {
                 subject: db.v('subject'),
                 predicate: `${rdf}type`,
-                object: curie2uri(context, type)
+                object: type
               },
               {
                 subject: db.v('subject'),
@@ -204,7 +203,7 @@ module.exports = ({ n3, context }) => {
             .filter(pipe(propEq('predicate', `${skos}prefLabel`), not()))
             .reduce((acc, { predicate, label }) => {
               acc.predicates.push({
-                uri: uri2curie(context, predicate),
+                uri: predicate,
                 label: getValue(label),
                 lang: getLanguage(label)
               });

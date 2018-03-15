@@ -10,9 +10,13 @@ const {
 const {
   $atom
 } = require('../utils/falcor');
+const {
+  curie2uri,
+  uri2curie,
+} = require('../utils/rdf');
 
 
-module.exports = (repos) => ([
+module.exports = (repos, context) => ([
   {
     route: 'ontology.repositories',
     get: () => ({
@@ -37,7 +41,9 @@ module.exports = (repos) => ([
           return repo.repository.getTypes()
             .map((types) => ({
               path: ['ontology', repoName, 'types'],
-              value: $atom(types)
+              value: $atom(types.map(({ uri, label, lang, }) => ({
+                uri: uri2curie(context, uri), label, lang,
+              })))
             }));
         });
     }
@@ -56,10 +62,14 @@ module.exports = (repos) => ([
             });
           }
 
-          return repo.repository.getPredicates(types)
+          return repo.repository.getPredicates(
+            types.map((type) => curie2uri(context, type))
+          )
             .map(({ type, predicates }) => ({
-              path: ['ontology', repoName, 'type', type],
-              value: $atom(predicates)
+              path: ['ontology', repoName, 'type', uri2curie(context, type)],
+              value: $atom(predicates.map(({ uri, label, lang, }) => ({
+                uri: uri2curie(context, uri), label, lang,
+              })))
             }));
         });
     }
