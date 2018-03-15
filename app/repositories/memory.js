@@ -35,7 +35,6 @@ const {
   getValue,
   getType,
   getLanguage,
-  curie2uri,
   context: { rdf, skos }
 } = require('../utils/rdf');
 
@@ -62,9 +61,8 @@ const cartesianProd = (a, b, c) => unnest(
 );
 
 
-module.exports = ({ n3, context }) => {
+module.exports = ({ n3, }) => {
   assert(typeof n3 === 'string', 'memory repository requires a n3 string on initialization');
-  assert(typeof context === 'object', 'memory repository requires a context object on initialization');
 
   const db = makeMemoryTripleStore(n3);
 
@@ -103,8 +101,8 @@ module.exports = ({ n3, context }) => {
         .mergeMap(([subject, predicate]) => {
           return fromNodeStream(
             db.getStream({
-              subject: curie2uri(context, subject),
-              predicate: curie2uri(context, predicate)
+              subject,
+              predicate,
             })
           )
             .count()

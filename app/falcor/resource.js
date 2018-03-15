@@ -102,9 +102,9 @@ module.exports = (repos, context) => ([
     }
   },
   {
-    route: 'resource[{keys:uris}]uri',
-    get({ uris }) {
-      return Observable.of(...uris)
+    route: 'resource[{keys:subjects}]uri',
+    get({ subjects }) {
+      return Observable.from(subjects)
         .map(uri => ({
           path: ['resource', uri, 'uri'],
           value: uri
@@ -112,16 +112,21 @@ module.exports = (repos, context) => ([
     }
   },
   {
-    route: 'resource[{keys:uris}][{keys:predicates}].length',
-    get({ uris, predicates }) {
+    route: 'resource[{keys:subjects}][{keys:predicates}].length',
+    get({ subjects, predicates }) {
       return Observable.from(
-        groupUrisByRepo(repos)(uris)
+        groupUrisByRepo(repos)(subjects)
       )
-        .mergeMap(({ repository, uris }) => repository.getTriplesCount(uris, predicates))
+        .mergeMap(({ repository, uris }) => (
+          repository.getTriplesCount(
+            uris.map((subject) => curie2uri(context, subject)),
+            predicates.map((predicate) => curie2uri(context, predicate))
+          ))
+        )
         .map(({ subject, predicate, length }) => {
           return {
-            path: ['resource', subject, predicate, 'length'],
-            value: typeof length === 'undefined' ? null : length
+            path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), 'length'],
+            value: length === undefined ? null : length
           };
         });
     }
