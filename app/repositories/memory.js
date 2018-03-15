@@ -114,9 +114,6 @@ module.exports = ({ n3, }) => {
         });
     },
 
-    // TODO
-    // getLabels()
-
     search(types, ranges) {
       return Observable.from(xprod(types, ranges))
         .mergeMap(([ type, range ]) => {
