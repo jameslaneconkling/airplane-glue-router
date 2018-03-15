@@ -114,11 +114,10 @@ module.exports = (repos, context) => ([
   {
     route: 'resource[{keys:uris}][{keys:predicates}].length',
     get({ uris, predicates }) {
-      // return Resources.getPredicateLengths(uris, predicates)
       return Observable.from(
         groupUrisByRepo(repos)(uris)
       )
-        .mergeMap(({ repository, uris }) => repository.getPredicateLengths(uris, predicates))
+        .mergeMap(({ repository, uris }) => repository.getTriplesCount(uris, predicates))
         .map(({ subject, predicate, length }) => {
           return {
             path: ['resource', subject, predicate, 'length'],

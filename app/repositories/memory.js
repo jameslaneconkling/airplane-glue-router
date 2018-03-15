@@ -70,7 +70,7 @@ module.exports = ({ n3, context }) => {
   const db = makeMemoryTripleStore(n3);
 
   return {
-    // TODO - should return triple length, preventing need for subsequent call to getPredicateLengths
+    // TODO - should return triple length, preventing need for subsequent call to getTriplesCount
     getTriples(subjects, predicates, ranges) {
       return Observable.from(cartesianProd(subjects, predicates, ranges))
         .mergeMap(([subject, predicate, range]) => {
@@ -99,7 +99,7 @@ module.exports = ({ n3, context }) => {
         });
     },
 
-    getPredicateLengths(subjects, predicates) {
+    getTriplesCount(subjects, predicates) {
       return Observable.of(...xprod(subjects, predicates))
         .mergeMap(([subject, predicate]) => {
           return fromNodeStream(

@@ -43,7 +43,7 @@ module.exports = ({ baseurl }) => {
           type: getType(object)
         }));
     },
-    getPredicateLengths: (subjects, predicates) => {},
+    getTriplesCount: (subjects, predicates) => {},
     // getLabels: (subjects) => {},
     search: (types, ranges) => {
       return Observable.from(types)
