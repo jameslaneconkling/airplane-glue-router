@@ -20,19 +20,25 @@ exports.groupUrisByRepo = (repos) => pipe(
 
     if (!repo) {
       console.warn(`No repository found for URI ${uri}`);
+      repoWithUris.missing = repoWithUris.missing || {
+        name: 'missing',
+        repository: null,
+        uris: []
+      };
+
+      repoWithUris.missing.uris.push(uri);
       return repoWithUris;
     }
 
-    if (repoWithUris[repo.name]) {
-      repoWithUris[repo.name].uris.push(uri);
-      return repoWithUris;
+    if (!repoWithUris[repo.name]) {
+      repoWithUris[repo.name] = {
+        name: repo.name,
+        repository: repo.repository,
+        uris: []
+      };
     }
 
-    repoWithUris[repo.name] = {
-      name: repo.name,
-      repository: repo.repository,
-      uris: [uri]
-    };
+    repoWithUris[repo.name].uris.push(uri);
     return repoWithUris;
   }, {}),
   values

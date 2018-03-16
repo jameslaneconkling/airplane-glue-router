@@ -26,12 +26,14 @@ module.exports = (repos, context) => ([
         groupUrisByRepo(repos)(subjects)
       )
         .mergeMap(({ repository, uris }) => (
-          repository.getTriples(
-            uris.map((subject) => curie2uri(context, subject)),
-            predicates.map((predicate) => curie2uri(context, predicate)),
-            ranges
-          ))
-        )
+          repository ?
+            repository.getTriples(
+              uris.map((subject) => curie2uri(context, subject)),
+              predicates.map((predicate) => curie2uri(context, predicate)),
+              ranges
+            ) :
+            Observable.throw('No matching repository')
+        ))
         .map(({ subject, predicate, index, object, type, lang }) => {
           if (object === undefined) {
             return {
@@ -75,11 +77,13 @@ module.exports = (repos, context) => ([
         groupUrisByRepo(repos)(subjects)
       )
         .mergeMap(({ repository, uris }) => (
-          repository.getTriplesCount(
-            uris.map((subject) => curie2uri(context, subject)),
-            predicates.map((predicate) => curie2uri(context, predicate))
-          ))
-        )
+          repository ?
+            repository.getTriplesCount(
+              uris.map((subject) => curie2uri(context, subject)),
+              predicates.map((predicate) => curie2uri(context, predicate))
+            ) :
+            Observable.throw('No matching repository')
+        ))
         .map(({ subject, predicate, length }) => {
           return {
             path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), 'length'],
