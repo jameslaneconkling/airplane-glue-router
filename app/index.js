@@ -19,7 +19,7 @@ const repos = [
   },
   {
     name: 'wikipedia',
-    domains: [/^dbr:/],
+    domains: [/^dbr:/, /^dbo:/, /^dbp:/],
     repository: makeRemoteRepository({ baseurl: 'http://localhost:3001/dbpedia', }),
   }
 ];
