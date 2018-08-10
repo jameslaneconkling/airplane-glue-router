@@ -4,13 +4,13 @@
   "description": "airplane-glue router",
   "main": "app/index.js",
   "scripts": {
-    "dev": "if which nodemon ; then NODE_ENV=development nodemon app/index.js ; else NODE_ENV=development node app/index.js ; fi",
+    "dev": "nodemon app/index.js",
     "start": "NODE_ENV=production node app/index.js",
     "dropDB": "rm -r ./level",
     "seedDB": "node ./lib/seed_db.js",
     "dumpDB": "node ./lib/dump_db.js",
     "lint": "eslint app/",
-    "test": "if which tap-summary ; then NODE_ENV=test node test/ | tap-summary : else NODE_ENV=test node test/ ; fi",
+    "test": "NODE_ENV=test node test/ | tap-summary",
     "validate": "npm run lint && npm run test",
     "seedDBAndStart": "npm run seedDB && npm run start"
   },
@@ -34,9 +34,11 @@
   },
   "devDependencies": {
     "eslint": "^4.18.1",
-    "falcor-supertest-datasource": "^1.1.0",
     "falcor": "^1.1.0",
+    "falcor-supertest-datasource": "^1.1.0",
+    "nodemon": "^1.18.3",
     "supertest": "^2.0.0",
+    "tap-summary": "^4.0.0",
     "tape": "^4.6.0"
   }
 }
