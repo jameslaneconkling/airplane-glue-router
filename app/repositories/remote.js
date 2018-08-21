@@ -38,7 +38,8 @@ module.exports = ({ baseurl }) => {
           type: getType(object)
         }));
     },
-    getTriplesCount: (subjects, predicates) => {},
+    // getTriplesCount: (subjects, predicates) => {},
+    getTriplesCount: () => {},
     // getLabels: (subjects) => {},
     search: (types, ranges) => {
       return Observable.from(types)
@@ -66,7 +67,8 @@ module.exports = ({ baseurl }) => {
             }));
         });
     },
-    searchCount: (types) => {},
+    // searchCount: (types) => {},
+    searchCount: () => {},
     getTypes: () => {
       return Observable.from(
         request({

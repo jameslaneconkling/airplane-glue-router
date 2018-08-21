@@ -19,9 +19,6 @@ require('rxjs/add/operator/toArray');
 const {
   prop,
   xprod,
-  pipe,
-  propEq,
-  not,
   unnest,
 } = require('ramda');
 const {
@@ -35,7 +32,7 @@ const {
   getValue,
   getType,
   getLanguage,
-  context: { rdf, skos }
+  context: { rdf, rdfs, skos }
 } = require('../utils/rdf');
 
 
@@ -177,22 +174,22 @@ module.exports = ({ n3, }) => {
       return Observable.of(...types)
         .mergeMap((type) => {
           return fromNodeStream(
-            db.searchStream([
-              {
-                subject: db.v('subject'),
-                predicate: `${rdf}type`,
-                object: type
-              },
-              {
-                subject: db.v('subject'),
-                predicate: db.v('predicate')
-              },
-              {
-                subject: db.v('predicate'),
-                predicate: `${skos}prefLabel`,
-                object: db.v('label')
-              }
-            ], { limit: 100 })
+            db.searchStream(
+              [
+                {
+                  subject: db.v('predicate'),
+                  predicate: `${rdfs}domain`,
+                  object: type,
+                },
+                {
+                  subject: db.v('predicate'),
+                  predicate: `${skos}prefLabel`,
+                  object: db.v('label')
+                }
+              ],
+              // { limit: 100 }
+              {}
+            )
           )
             .distinct(prop('predicate'))
             .reduce((acc, { predicate, label }) => {
