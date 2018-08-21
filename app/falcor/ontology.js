@@ -2,6 +2,7 @@ const Observable = require('rxjs/Observable').Observable;
 require('rxjs/add/observable/of');
 require('rxjs/add/operator/mergeMap');
 require('rxjs/add/operator/map');
+require('rxjs/add/operator/bufferTime');
 const {
   find,
   prop,
@@ -45,7 +46,8 @@ module.exports = (repos, context) => ([
                 uri: uri2curie(context, uri), label, lang,
               })))
             }));
-        });
+        })
+        .bufferTime(0);
     }
   },
   {
@@ -71,7 +73,8 @@ module.exports = (repos, context) => ([
                 uri: uri2curie(context, uri), label, lang,
               })))
             }));
-        });
+        })
+        .bufferTime(0);
     }
   }
 ]);

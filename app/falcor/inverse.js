@@ -5,6 +5,7 @@ const {
 require('rxjs/add/observable/of');
 require('rxjs/add/operator/map');
 require('rxjs/add/operator/mergeMap');
+require('rxjs/add/operator/bufferTime');
 
 
 module.exports = (db, context) => {
@@ -22,7 +23,8 @@ module.exports = (db, context) => {
                 null :
                 $ref(['resource', subject])
             };
-          });
+          })
+          .bufferTime(0);
       }
     },
     {
@@ -36,7 +38,8 @@ module.exports = (db, context) => {
                 null :
                 $ref(['resource', subject])
             };
-          });
+          })
+          .bufferTime(0);
       }
     }
   ];

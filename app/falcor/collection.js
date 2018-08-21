@@ -2,6 +2,7 @@ const Observable = require('rxjs/Observable').Observable;
 require('rxjs/add/observable/of');
 require('rxjs/add/operator/map');
 require('rxjs/add/operator/mergeMap');
+require('rxjs/add/operator/bufferTime');
 const {
   merge
 } = require('ramda');
@@ -36,7 +37,8 @@ module.exports = (repos, context) => ([
             path: ['collection', serializeCollection(repository, uri2curie(context, type)), collectionIdx],
             value: typeof subject === 'undefined' ? null : $ref(['resource', uri2curie(context, subject)])
           };
-        });
+        })
+        .bufferTime(0);
     }
   },
   {
@@ -54,7 +56,8 @@ module.exports = (repos, context) => ([
             path: ['collection', serializeCollection(repository, uri2curie(context, type)), 'length'],
             value: typeof length === 'undefined' ? null : length
           };
-        });
+        })
+        .bufferTime(0);
     }
   },
 ]);

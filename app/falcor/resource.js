@@ -1,8 +1,10 @@
 const Observable = require('rxjs/Observable').Observable;
 require('rxjs/add/observable/from');
 require('rxjs/add/observable/of');
+require('rxjs/add/observable/throw');
 require('rxjs/add/operator/map');
 require('rxjs/add/operator/mergeMap');
+require('rxjs/add/operator/bufferTime');
 const {
   $atom,
   $ref,
@@ -32,6 +34,7 @@ module.exports = (repos, context) => ([
               predicates.map((predicate) => curie2uri(context, predicate)),
               ranges
             ) :
+            // TODO - error messages are not included in returned graphJSON
             Observable.throw('No matching repository')
         ))
         .map(({ subject, predicate, index, object, type, lang }) => {
@@ -57,7 +60,8 @@ module.exports = (repos, context) => ([
               )
             )
           };
-        });
+        })
+        .bufferTime(0);
     }
   },
   {
@@ -67,7 +71,8 @@ module.exports = (repos, context) => ([
         .map(uri => ({
           path: ['resource', uri, 'uri'],
           value: uri
-        }));
+        }))
+        .bufferTime(0);
     }
   },
   {
@@ -89,7 +94,8 @@ module.exports = (repos, context) => ([
             path: ['resource', uri2curie(context, subject), uri2curie(context, predicate), 'length'],
             value: length === undefined ? null : length
           };
-        });
+        })
+        .bufferTime(0);
     }
   }
 ]);
