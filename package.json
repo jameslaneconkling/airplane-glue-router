@@ -38,7 +38,7 @@
     "falcor-supertest-datasource": "^1.1.0",
     "nodemon": "^1.18.3",
     "supertest": "^2.0.0",
-    "tap-summary": "^4.0.0",
-    "tape": "^4.6.0"
+    "tap-summary": "^3.0.2",
+    "tape": "^4.9.1"
   }
 }
