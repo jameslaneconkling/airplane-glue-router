@@ -15,7 +15,7 @@ const WIKIPEDIA_URL = process.env.WIKIPEDIA_URL || 'localhost:3001';
 
 const repos = [
   {
-    name: 'memory',
+    name: 'trump world',
     // domains: [/^data:/, /^schema:/, /^wd:/, /^skos:/],
     domains: [/^http:\/\/juno\.network\/trumpworld/, /^schema:/, /^skos:/, /^data:/, /^wd:/, /^skos:/],
     repository: makeMemoryRepository({ n3: readFileSync(DEV_SEED, 'utf8'), context })

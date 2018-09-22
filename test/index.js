@@ -1,4 +1,3 @@
-// require('./integration/collection');
-// require('./integration/resource');
-require('./integration/inverse');
-// require('./unit/utils');
+require('./integration/collection');
+require('./integration/resource');
+require('./unit/utils');

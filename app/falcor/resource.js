@@ -71,8 +71,7 @@ module.exports = (repos, context) => ([
         .map(uri => ({
           path: ['resource', uri, 'uri'],
           value: uri
-        }))
-        .bufferTime(0);
+        }));
     }
   },
   {

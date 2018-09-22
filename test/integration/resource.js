@@ -211,7 +211,7 @@ test('Resource: should return uri', assert => {
 });
 
 
-test('Resource: should allow requests to use uris in addition to curies', assert => {
+test.skip('Resource: should allow requests to use uris in addition to curies', assert => {
   assert.plan(1);
   const seedN3 = `
     @prefix rdf: <${rdf}> .
@@ -251,97 +251,6 @@ test('Resource: should allow requests to use uris in addition to curies', assert
 
       assert.deepEqual(res.body.jsonGraph, expectedResponse);
     });
-});
-
-
-test('Resource: should return prefLabel for objects and predicates', assert => {
-  assert.plan(1);
-  const seedN3 = `
-    @prefix rdf: <${rdf}> .
-    @prefix schema: <${schema}> .
-    @prefix skos: <${skos}> .
-
-    <data:tim> a schema:Person ;
-        skos:prefLabel "Tim Conkling" .
-
-    schema:sibling
-        skos:prefLabel "Sibling" .
-  `;
-  const model = setupFalcorTestModel(seedN3);
-
-  const expectedResponse = {
-    resource: {
-      'data:tim': {
-        'skos:prefLabel': 'Tim Conkling'
-      },
-      'schema:sibling': {
-        'skos:prefLabel': 'Sibling'
-      }
-    }
-  };
-
-  model.get(
-    ['resource', 'data:tim', 'skos:prefLabel'],
-    ['resource', 'schema:sibling', 'skos:prefLabel']
-  )
-    .subscribe(res => {
-      assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse);
-    }, assertFailure(assert));
-});
-
-
-// Not sure what the expected behavior should be here
-// either let any predicate be requested w/o range [current implementation]
-// or only let specific singleton predicates, like skos:prefLabel, request predicate w/o range
-test('Resource: should allow requests to implicitly assume a predicate is a singleton by not including range', assert => {
-  assert.plan(2);
-  const seedN3 = `
-    @prefix rdf: <${rdf}> .
-    @prefix schema: <${schema}> .
-
-    <data:tim> a schema:Person ;
-        schema:gender "Male"@en ;
-        schema:sibling <data:micah> ;
-        schema:sibling <data:sam> .
-  `;
-  const model = setupFalcorTestModel(seedN3);
-
-  model.boxValues().get(['resource', 'data:tim', ['schema:sibling', 'schema:gender'], [0, 1]])
-    .subscribe(res => {
-      const expectedResponse = {
-        resource: {
-          'data:tim': {
-            'schema:sibling': {
-              0: $ref(['resource', 'data:micah']),
-              1: $ref(['resource', 'data:sam']),
-            },
-            'schema:gender': {
-              0: $atom('Male'),
-              1: $atom(null),
-            }
-          }
-        }
-      };
-
-      assert.deepEqual(deserializeGraphJSON(res.json), expectedResponse, 'request for predicate with range succeeded');
-
-      model.get(['resource', 'data:tim', ['schema:sibling', 'schema:gender']])
-        .subscribe(() => {
-          const expectedResponse = {
-            resource: {
-              'data:tim': {
-                'schema:sibling': $ref(['resource', 'data:micah']),
-                'schema:gender': $atom('Male')
-              }
-            }
-          };
-
-          // as shown here, it is possible to treat an non-singlton predicate, like schema:sibling, as a singleton
-          // which has the effect of overwriting the the cache tree for that predicate if it was previously treated as a non-singleton
-          const cache = model.getCache(['resource', 'data:tim', ['schema:sibling', 'schema:gender']]);
-          assert.deepEqual(deserializeGraphJSON(cache), expectedResponse, 'request for predicate as singleton succeeded');
-        });
-    }, assertFailure(assert));
 });
 
 
@@ -445,7 +354,7 @@ test('Resource: should treat predicates as resources', assert => {
 
 
 // Is this the correct behavior
-test('Resource: should return nulls for resources that don\'t exist', assert => {
+test.skip('Resource: should return nulls for resources that don\'t exist', assert => {
   assert.plan(1);
   const model = setupFalcorTestModel(seedN3);
 
