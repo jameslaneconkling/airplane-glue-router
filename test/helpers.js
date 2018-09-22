@@ -24,7 +24,7 @@ const setupTestRepos = exports.setupTestRepos = (n3) => [{
 
 
 exports.setupFalcorTestModel = (n3) => {
-  const app = require('../app/app')(setupTestRepos(n3));
+  const app = require('../app/app')(setupTestRepos(n3), context);
 
   return new falcor.Model({
     source: new SuperTestDataSource('/api/model.json', app)
