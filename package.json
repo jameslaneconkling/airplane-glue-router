@@ -2,14 +2,16 @@
   "name": "airplane-glue-router",
   "version": "0.1.0",
   "description": "airplane-glue router",
-  "main": "app/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon app/index.js",
+    "clean": "rm -r ./dist",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+    "build": "npm run clean && tsc",
     "start": "NODE_ENV=production node app/index.js",
     "dropDB": "rm -r ./level",
     "seedDB": "node ./lib/seed_db.js",
     "dumpDB": "node ./lib/dump_db.js",
-    "lint": "eslint app/",
+    "lint": "tslint src/",
     "test": "NODE_ENV=test node test/ | tap-summary",
     "validate": "npm run lint && npm run test",
     "seedDBAndStart": "npm run seedDB && npm run start"
@@ -18,27 +20,33 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.2",
-    "express": "^4.14.1",
+    "express": "^4.16.3",
     "falcor-express": "^0.1.4",
-    "falcor-router": "^0.8.0",
+    "falcor-router": "^0.8.3",
     "leveldown": "^1.6.0",
     "levelgraph": "^2.1.1",
     "levelgraph-n3": "^2.1.0",
     "levelup": "^1.3.3",
     "memdown": "^1.2.4",
-    "morgan": "^1.7.0",
+    "morgan": "^1.9.1",
     "ramda": "^0.21.0",
     "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
-    "rxjs": "^5.5.7"
+    "rxjs": "^6.3.2"
   },
   "devDependencies": {
-    "eslint": "^4.18.1",
+    "@types/express": "^4.16.0",
+    "@types/falcor-express": "^0.1.18",
+    "@types/morgan": "^1.7.35",
     "falcor": "^1.1.0",
     "falcor-supertest-datasource": "^1.1.0",
     "nodemon": "^1.18.3",
     "supertest": "^2.0.0",
     "tap-summary": "^3.0.2",
-    "tape": "^4.9.1"
+    "tape": "^4.9.1",
+    "ts-node": "^6.2.0",
+    "tslint": "^5.11.0",
+    "tslint-config-prettier": "^1.15.0",
+    "typescript": "^3.0.3"
   }
 }
