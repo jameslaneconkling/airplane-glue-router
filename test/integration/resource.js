@@ -8,7 +8,6 @@ const {
 } = require('../helpers');
 const {
   $atom,
-  $ref
 } = require('../../app/utils/falcor');
 const {
   context: {
