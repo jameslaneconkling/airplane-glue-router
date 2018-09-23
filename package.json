@@ -1,7 +1,7 @@
 {
-  "name": "airplane-glue-router",
+  "name": "juno-falcor-router",
   "version": "0.1.0",
-  "description": "airplane-glue router",
+  "description": "falcor router for juno knowledge graphs",
   "main": "dist/index.js",
   "scripts": {
     "clean": "rm -r ./dist",

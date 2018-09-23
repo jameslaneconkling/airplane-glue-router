@@ -31,21 +31,14 @@ npm run start
 ### Dockerize
 ```bash
 # build
-npm run validate && \
-  docker build -t airplane-glue-router:latest .
+npm run validate && npm run build && \
+  docker build -t juno-falcor-router:latest .
 
 # run
-docker rm -f airplane-glue-router
 docker run -dit \
   -e NODE_ENV='production' \
   -p 3000:3000 \
   -v $(pwd)/seed.n3:/usr/src/seed.n3 \
-  --name airplane-glue-router \
-  airplane-glue-router
-
-# login
-docker exec -it airplane-glue-router sh
-
-# inspect
-docker inspect airplane-glue-router
+  --name juno-falcor-router \
+  juno-falcor-router
 ```
