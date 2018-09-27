@@ -1,6 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
-import falcor from './falcor';
+import { dataSourceRoute } from 'falcor-express';
+import createFalcorRouter from './falcor';
 
 
 const PORT = process.env.PORT || 3000;
@@ -13,7 +14,14 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Falcor endpoint
-app.use('/api/model.json', falcor);
+const context = {}; // TODO - import context.json based on ENV path variable
+const Router = createFalcorRouter(context);
+app.use('/api/model.json', dataSourceRoute(() => new Router()));
+
+// const router = new Router()
+
+// router.get([['tasksById', { length: 4 }]])
+//   .subscribe((data) => console.log(JSON.stringify(data)));
 
 // Error handling
 // app.use((err, req, res, next) => {

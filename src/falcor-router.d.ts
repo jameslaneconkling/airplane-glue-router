@@ -6,14 +6,20 @@
 /// <reference types="falcor" />
 
 declare module 'falcor-router' {
-    import * as FalcorModel from 'falcor';
-    import * as FalcorJsonGraph from 'falcor-json-graph';
+    import { DataSource } from 'falcor';
+    import {
+        PathSet,
+        PathValue,
+        InvalidPath,
+        JSONGraph,
+        JSONEnvelope,
+        JSONGraphEnvelope
+    } from 'falcor-json-graph';
     import { Observable } from 'rxjs';
-    import DataSource = FalcorModel.DataSource;
 
     class FalcorRouter extends DataSource {
 
-        constructor(routes: Array<FalcorRouter.RouteDefinition>, options?: FalcorRouter.RouterOptions);
+        constructor(routes: Array<FalcorRouter.Route>, options?: FalcorRouter.RouterOptions);
     
         /**
          * When a route misses on a call, get, or set the unhandledDataSource will
@@ -21,7 +27,7 @@ declare module 'falcor-router' {
          **/
         routeUnhandledPathsTo(dataSource: DataSource): void;
     
-        static createClass(routes?: Array<FalcorRouter.RouteDefinition>): typeof FalcorRouter.CreatedRouter;
+        static createClass(routes?: Array<FalcorRouter.Route>): typeof FalcorRouter.CreatedRouter;
     }
     
     namespace FalcorRouter {
@@ -30,27 +36,26 @@ declare module 'falcor-router' {
             constructor(options?: RouterOptions);
         }
     
-        interface Route {
+        interface AbstractRoute {
             route: string;
         }
     
-        type RoutePathSet = FalcorJsonGraph.PathSet;
-    
-        interface CallRoute extends Route {
-            call(callPath: RoutePathSet, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>;
+        interface CallRoute<P extends PathSet = PathSet> extends AbstractRoute {
+            call(callPath: P, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>;
         }
     
-        interface GetRoute extends Route {
-            get(pathset: RoutePathSet): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
+        interface GetRoute<P extends PathSet = PathSet> extends AbstractRoute {
+            // get(pathset: PathSet): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
+            get(pathset: P): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
         }
     
-        interface SetRoute extends Route {
-            set(jsonGraph: FalcorJsonGraph.JSONGraph): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
+        interface SetRoute extends AbstractRoute {
+            set(jsonGraph: JSONGraph): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
         }
     
-        type RouteDefinition = GetRoute | SetRoute | CallRoute;
-        type RouteResult = FalcorJsonGraph.PathValue | Array<FalcorJsonGraph.PathValue> | FalcorJsonGraph.JSONEnvelope<any>;
-        type CallRouteResult = FalcorJsonGraph.PathValue | FalcorJsonGraph.InvalidPath | Array<FalcorJsonGraph.PathValue | FalcorJsonGraph.InvalidPath> | FalcorJsonGraph.JSONGraphEnvelope;
+        type Route<P extends PathSet = PathSet> = GetRoute<P> | SetRoute | CallRoute<P>;
+        type RouteResult = PathValue | Array<PathValue> | JSONEnvelope<any>;
+        type CallRouteResult = PathValue | InvalidPath | Array<PathValue | InvalidPath> | JSONGraphEnvelope;
     
         interface RouterOptions {
             debug?: boolean;
