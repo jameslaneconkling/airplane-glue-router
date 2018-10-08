@@ -2,23 +2,23 @@ import { toPairs } from 'ramda';
 import { ContextMap, URI, Literal } from '../types';
 
 
-export const context: ContextMap = {
+export const defaultContext: ContextMap = {
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
   xsd: 'http://www.w3.org/2001/XMLSchema#',
-  schema: 'http://schema.org/',
+  owl: 'http://www.w3.org/2002/07/owl#',
   skos: 'http://www.w3.org/2004/02/skos/core#',
-  dbo: 'http://dbpedia.org/ontology/',
-  dbp: 'http://dbpedia.org/property/',
-  dbr: 'http://dbpedia.org/resource/',
-  wd: 'http://www.wikidata.org/',
 };
+
+// schema: 'http://schema.org/',
+// dbo: 'http://dbpedia.org/ontology/',
+// dbp: 'http://dbpedia.org/property/',
+// dbr: 'http://dbpedia.org/resource/',
+// wd: 'http://www.wikidata.org/',
 
 
 // TODO - all of these should be their own data types, rather than string munging
 // should the create functions throw errors if they are passed something that doesn't follow the uri/literal pattern?
-
-
 export const createUri = (context: ContextMap, uri: string): URI => {
   if (isCurie(uri)) {
     const [prefix, suffix] = uri.split(':');
@@ -49,7 +49,7 @@ export const createUri = (context: ContextMap, uri: string): URI => {
   };
 };
 
-export const createLiteral = (literal: string): Literal => {
+export const createLiteral = (context: ContextMap, literal: string): Literal => {
   return {
     literal,
     value: literal.replace(/"\^\^.*$/, '') // should this attempt to parse ints/floats/booleans?
