@@ -2,24 +2,21 @@ import levelup from 'levelup';
 import levelgraph from 'levelgraph';
 import levelgraphN3 from 'levelgraph-n3';
 import memdown from 'memdown';
-import {
-  from,
-} from "rxjs";
+import { from } from "rxjs";
 import { mergeMap, map } from 'rxjs/operators';
-import { streamToRx } from 'rxjs-stream';
-import { PathValue } from 'falcor';
 import { unnest, xprod } from 'ramda';
-import { ContextMap, DefaultRange, Adapter } from '../types';
+import { ContextMap, Adapter } from '../types';
 import { defaultContext } from '../utils/rdf';
 import { range2LimitOffset } from '../utils/falcor';
-import { takeExactly, fromNodeStream } from '../utils/rxjs';
+import { fromStream } from '../utils/rxjs';
+import { noop } from '../utils/misc';
 
 
 // TODO - update levelup and add types
 const makeMemoryTripleStore = (n3: string) => {
   const db = levelgraphN3(levelgraph(levelup('memoryGraph', { db: memdown })));
 
-  db.n3.put(n3);
+  db.n3.put(n3, noop);
 
   return db;
 };
@@ -32,12 +29,12 @@ export default ({ n3, context = defaultContext }: { n3: string, context?: Contex
   const db = makeMemoryTripleStore(n3);
 
   return {
-    search(types, ranges) {
-      return from(xprod(types, ranges)).pipe(
-        mergeMap(([ type, range ]) => {
-          const { offset, limit, levelGraphLimit } = range2LimitOffset(range);
+    search({ type }, ranges) {
+      return from(ranges).pipe(
+        mergeMap((range) => {
+          const { offset, levelGraphLimit } = range2LimitOffset(range);
 
-          return fromNodeStream(
+          return fromStream<{ subject: string }>(
             db.getStream({
               predicate: `${defaultContext.rdf}type`,
               object: type,
@@ -45,39 +42,19 @@ export default ({ n3, context = defaultContext }: { n3: string, context?: Contex
               offset,
             })
           ).pipe(
-            takeExactly(limit),
-            map((a) => a),
             map(({ subject }, idx) => ({
-              type,
-              collectionIdx: offset + idx,
-              subject,
+              index: offset + idx,
+              uri: subject,
             }))
           );
-
-          // return streamToRx(
-          //   db.getStream({
-          //     predicate: `${defaultContext.rdf}type`,
-          //     object: type,
-          //     limit: levelGraphLimit,
-          //     offset,
-          //   })
-          // ).pipe(
-          //   takeExactly(limit),
-          //   map((a) => a),
-          //   map(({ subject }, idx) => ({
-          //     type,
-          //     collectionIdx: offset + idx,
-          //     subject,
-          //   }))
-          // );
         })
-      )
+      );
     },
 
     // searchCount(types) {
     //   return Observable.of(...types)
     //     .mergeMap((type) => {
-    //       return fromNodeStream(
+    //       return fromStream(
     //         db.getStream({
     //           predicate: `${rdf}type`,
     //           object: type
@@ -88,13 +65,13 @@ export default ({ n3, context = defaultContext }: { n3: string, context?: Contex
     //     });
     // },
 
-    // // TODO - should return triple length, preventing need for subsequent call to getTriplesCount
-    // getTriples(subjects, predicates, ranges) {
+    // // TODO - should return triple length, preventing need for subsequent call to triplesCount
+    // triples(subjects, predicates, ranges) {
     //   return from(cartesianProd(subjects, predicates, ranges)).pipe(
     //     mergeMap(([subject, predicate, range]) => {
     //       const { offset, limit, levelGraphLimit } = range2LimitOffset(range);
 
-    //       return streamToRx(
+    //       return fromStream(
     //         db.getStream({
     //           subject,
     //           predicate,
@@ -116,10 +93,10 @@ export default ({ n3, context = defaultContext }: { n3: string, context?: Contex
     //   )
     // },
 
-    // getTriplesCount(subjects, predicates) {
+    // triplesCount(subjects, predicates) {
     //   return Observable.of(...xprod(subjects, predicates))
     //     .mergeMap(([subject, predicate]) => {
-    //       return fromNodeStream(
+    //       return fromStream(
     //         db.getStream({
     //           subject,
     //           predicate,
@@ -135,7 +112,7 @@ export default ({ n3, context = defaultContext }: { n3: string, context?: Contex
     // },
 
     // getTypes() {
-    //   return fromNodeStream(
+    //   return fromStream(
     //     db.searchStream([
     //       {
     //         predicate: `${rdf}type`,
@@ -159,7 +136,7 @@ export default ({ n3, context = defaultContext }: { n3: string, context?: Contex
     // getPredicates(types) {
     //   return Observable.of(...types)
     //     .mergeMap((type) => {
-    //       return fromNodeStream(
+    //       return fromStream(
     //         db.searchStream(
     //           [
     //             {

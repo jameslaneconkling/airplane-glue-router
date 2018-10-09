@@ -12,14 +12,13 @@
     "seedDB": "node ./lib/seed_db.js",
     "dumpDB": "node ./lib/dump_db.js",
     "lint": "tslint src/",
-    "test": "NODE_ENV=test node test/ | tap-summary",
+    "test": "NODE_ENV=test ts-node test/ | tap-summary",
     "validate": "npm run lint && npm run test",
     "seedDBAndStart": "npm run seedDB && npm run start"
   },
   "author": "jameslaneconkling",
   "license": "ISC",
   "dependencies": {
-    "@types/query-string": "^6.1.0",
     "body-parser": "^1.15.2",
     "express": "^4.16.3",
     "falcor-express": "^0.1.4",
@@ -35,14 +34,15 @@
     "ramda": "^0.21.0",
     "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
-    "rxjs": "^6.3.2",
-    "rxjs-stream": "^3.0.1"
+    "rxjs": "^6.3.2"
   },
   "devDependencies": {
     "@types/express": "^4.16.0",
     "@types/falcor-express": "^0.1.18",
     "@types/morgan": "^1.7.35",
+    "@types/query-string": "^6.1.0",
     "@types/ramda": "github:types/npm-ramda#dist",
+    "@types/tape": "^4.2.32",
     "falcor": "^1.1.0",
     "falcor-supertest-datasource": "^1.1.0",
     "nodemon": "^1.18.3",
@@ -52,6 +52,6 @@
     "ts-node": "^6.2.0",
     "tslint": "^5.11.0",
     "tslint-config-prettier": "^1.15.0",
-    "typescript": "^3.0.3"
+    "typescript": "^3.1.1"
   }
 }

@@ -1,14 +1,14 @@
-import Falcor, { Range } from 'falcor';
-import { ObservableInput } from 'rxjs';
+import Falcor from 'falcor';
+import { Observable } from 'rxjs';
 
 
 export type ContextMap = {
   [prefix: string]: string
 }
 
-// export type Collection = {
-//   type: string
-// }
+export type Search = {
+  type: string
+}
 
 /*
 TODO
@@ -18,15 +18,26 @@ TODO
 - how to define an adapter search handler to handle multiple graphs
  */
 export type Adapter = {
-  search(collections: string[], ranges: DefaultRange[]): ObservableInput<{}>
-  // getTriples(subjects: string[], predicates: string[], ranges: DefaultRange[]): ObservableInput<{}>
+  search(collection: Search, ranges: StandardRange[]): Observable<{ index: number, uri: string }>
+  // one approach to allow add-hoc pathValues: return grouped stream
+  // search(collection: Search, ranges: StandardRange[]): Observable<[
+  //   Observable<{ index: number, uri: string }>,
+  //   Observable<PathValue>
+  // ]>
+  // getTriples(subjects: string[], predicates: string[], ranges: StandardRange[]): Observable<{}>
 }
 
-export type GraphAdapter = {
-  name?: string,
+export type NamedGraphAdapter = AnonymousGraphAdapter & {
+  key: string,
+  label: string,
+}
+
+export type AnonymousGraphAdapter = {
   domains: RegExp[],
   adapter: Adapter
-};
+}
+
+export type GraphAdapter = NamedGraphAdapter | AnonymousGraphAdapter
 
 export type URI = {
   value: string
@@ -44,7 +55,7 @@ export type Literal = {
 
 export type Atom = Falcor.Atom & { $lang?: string, $dataType?: string }
 
-export type DefaultRange = Range & {
+export type StandardRange = {
   from: number,
   to: number
 }

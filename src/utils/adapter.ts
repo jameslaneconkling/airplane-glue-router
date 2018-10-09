@@ -1,8 +1,8 @@
-import { GraphAdapter } from "../types";
+import { GraphAdapter, NamedGraphAdapter } from "../types";
 import { any } from "ramda";
 
-export const matchName = (adapters: GraphAdapter[], name: string) => (
-  adapters.find(({ name: adapterName }) => adapterName === name)
+export const matchName = (adapters: GraphAdapter[], adapterKey: string) => (
+  adapters.find((adapter) => adapterKey === (adapter as NamedGraphAdapter).key)
 );
 
 export const matchDomain = (adapters: GraphAdapter[], domainName: string) => (

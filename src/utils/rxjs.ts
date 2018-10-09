@@ -1,19 +1,40 @@
-import { Observable, concat, range, Observer } from "rxjs";
-import { take } from "rxjs/operators";
+import { Observable, range, Observer, concat, merge, from } from "rxjs";
+import { count, map, mergeMap, reduce } from "rxjs/operators";
 
-export const takeExactly = (count: number) => <T>(source$: Observable<T>) => concat(
+// export const takeExactly = (count: number) => <T>(source$: Observable<T>) => concat(
+//   source$,
+//   range(0, count)
+// ).pipe(take(count));
+
+export const pad = <T>(n: number, project: (index: number) => T) => <R>(source$: Observable<R>) => merge(
   source$,
-  range(0, count)
-).pipe(take(count));
+  source$.pipe(
+    count(),
+    mergeMap((sourceLength) => range(sourceLength, n - sourceLength)),
+    map(project),
+  )
+);
+
+export const mapMissing = <T, R, A>(expected: Set<R>, id: (item: T) => R, project: (item: R) => A) => (source$: Observable<T>) => merge(
+  source$,
+  source$.pipe(
+    reduce<T, Set<R>>((acc, item) => {
+      acc.delete(id(item));
+      return acc;
+    }, expected),
+    mergeMap((missing) => from(Array.from(missing.values()).map(project)))
+  )
+);
+
 
 // from Reactive-Extensions (rx v4) rx-node.fromStream()
 // https://github.com/Reactive-Extensions/rx-node/blob/master/index.js
-export const fromNodeStream = <T>(stream: NodeJS.ReadableStream) => {
+export const fromStream = <T>(stream: NodeJS.ReadableStream): Observable<T> => {
   stream.pause();
 
-  return Observable.create((observer: Observer<T>) => {
-    const dataHandler = (data: T) => observer.next(data);
-    const errorHandler = (err: any) => observer.error(err);
+  return new Observable((observer) => {
+    const dataHandler = (data) => observer.next(data);
+    const errorHandler = (err) => observer.error(err);
     const endHandler = () => observer.complete();
 
     stream.addListener('data', dataHandler);
@@ -27,5 +48,5 @@ export const fromNodeStream = <T>(stream: NodeJS.ReadableStream) => {
       stream.removeListener('error', errorHandler);
       stream.removeListener('end', endHandler);
     };
-  }).share();
+  });
 };

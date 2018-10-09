@@ -1,16 +1,13 @@
 import {
   range,
 } from 'ramda';
-import { DefaultRange, Atom } from '../types';
-
-
-
+import { StandardRange, Atom } from '../types';
 
 
 /**
  * Convert falcor range to an array of equivalent indices
  */
-export const range2List = ({ from, to }: DefaultRange) => range(from, to + 1);
+export const range2List = ({ from, to }: StandardRange) => range(from, to + 1);
 
 /**
  * Convert falcor range to SQL OFFSET and LIMIT values
@@ -19,7 +16,7 @@ export const range2List = ({ from, to }: DefaultRange) => range(from, to + 1);
  * limit will match expected semantics from SQL, and should be used in non levelGraph cases, e.g. takeExactly(db$, limit)
  * levelGraphLimit should be used with levelGraph
  */
-export const range2LimitOffset = ({ from, to }: DefaultRange) => ({ offset: from, limit: to + 1 - from, levelGraphLimit: to + 1 });
+export const range2LimitOffset = ({ from, to }: StandardRange) => ({ offset: from, limit: to + 1 - from, levelGraphLimit: to + 1 });
 
 export const $atom = (value: any, dataType?: string, lang?: string) => {
   const atom: Atom = { $type: 'atom', value };
