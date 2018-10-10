@@ -1,10 +1,28 @@
-import { GraphAdapter, NamedGraphAdapter } from "../types";
-import { any } from "ramda";
+import { GraphDescription, Adapter } from "../types";
+import { any, values } from "ramda";
 
-export const matchName = (adapters: GraphAdapter[], adapterKey: string) => (
-  adapters.find((adapter) => adapterKey === (adapter as NamedGraphAdapter).key)
+export const matchKey = (graphs: GraphDescription[], adapterKey: string) => (
+  graphs.find((adapter) => adapterKey === adapter.key)
 );
 
-export const matchDomain = (adapters: GraphAdapter[], domainName: string) => (
-  adapters.find(({ domains }) => any((domain) => domain.test(domainName), domains))
+export const matchDomain = (graphs: GraphDescription[], domainName: string) => (
+  graphs.find(({ domains }) => any((domain) => domain.test(domainName), domains))
 );
+
+export const groupUrisByGraph = (graphs: GraphDescription[], uris: string[]) => {
+  return values(uris.reduce<{ [key: string]: { adapter: Adapter, uris: string[] } }>((grouped, uri) => {
+    const graphDescription = matchDomain(graphs, uri);
+    if (graphDescription === undefined) {
+      // TODO - handle unmatched resources?
+      return grouped;
+    }
+
+    if (grouped[graphDescription.key]) {
+      grouped[graphDescription.key].uris.push(uri);
+    } else {
+      grouped[graphDescription.key] = { adapter: graphDescription.adapter, uris: [uri] };
+    }
+
+    return grouped;
+  }, {}));
+};

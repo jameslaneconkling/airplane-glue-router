@@ -3,8 +3,8 @@ import express from 'express';
 import morgan from 'morgan';
 import { dataSourceRoute } from 'falcor-express';
 import createRouter from './falcor';
-import { GraphAdapter, ContextMap } from './types';
-import memoryAdapter from './adapters/memoryAdapter';
+import { GraphDescription, ContextMap } from './types';
+import memoryAdapter from './adapters/memory';
 
 
 const PORT = process.env.PORT || 3000;
@@ -19,7 +19,7 @@ if (process.env.CONTEXT) {
 }
 
 
-// create graphAdapters
+// create graphs
 const rdf = `
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -37,47 +37,56 @@ const skos = `
 skos:prefLabel a rdf:Property ;
     skos:prefLabel "Label"@en .
 `;
+
+
 // TODO - should domains need to take curies?
-const graphAdapters: GraphAdapter[] = [{
-  key: 'trump-world',
-  label: 'Trump World',
-  domains: [/^http:\/\/juno\.network\/trumpworld/],
-  adapter: memoryAdapter({ n3: readFileSync(SEED, 'utf8'), context }),
-}, {
-  domains: [/^rdf:/],
-  adapter: memoryAdapter({ n3: rdf, context }),
-}, {
-  domains: [/^skos:/],
-  adapter: memoryAdapter({ n3: skos, context }),
-}];
+Promise.all([
+  memoryAdapter({ n3: readFileSync(SEED, 'utf8'), context }),
+  memoryAdapter({ n3: rdf, context }),
+  memoryAdapter({ n3: skos, context })
+]).then(([trumpWorldAdapter, rdfAdapter, skosAdapter]) => {
+  const graphs: GraphDescription[] = [{
+    key: 'trump-world',
+    label: 'Trump World',
+    domains: [/^http:\/\/juno\.network\/trumpworld/],
+    adapter: trumpWorldAdapter,
+  }, {
+    key: 'rdf',
+    domains: [/^rdf:/],
+    adapter: rdfAdapter,
+  }, {
+    key: 'skos',
+    domains: [/^skos:/],
+    adapter: skosAdapter,
+  }];
+
+  // Create App
+  const app = express();
+
+  if (process.env.NODE_ENV !== 'test') {
+    app.use(morgan('combined'));
+  }
+
+  const Router = createRouter({ context, graphs });
+  app.use('/api/model.json', dataSourceRoute(() => new Router({ user: 'test-user' }))); // TODO - adapters should be initialized w/ each request
+
+  const router = new Router({ user: 'test-user' });
+
+  router.get([['graph', 'trump-world', 'type=ABC', 10, 'rdf:label', 0]])
+    .subscribe((res) => console.log(JSON.stringify(res)), (err) => console.error(err));
+
+  // Error handling
+  // app.use((err, req, res, next) => {
+  //   console.error(err);
+  //   req.status(500).send({
+  //     name: err.name,
+  //     message: err.message,
+  //     stack: err.stack
+  //   });
+  // });
 
 
-// Create App
-const app = express();
-
-if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('combined'));
-}
-
-const Router = createRouter({ context, graphAdapters });
-app.use('/api/model.json', dataSourceRoute(() => new Router({ user: 'test-user' }))); // TODO - adapters should be initialized w/ each request
-
-// const router = new Router({ user: 'test-user' });
-
-// router.get([['collection', 'trump-world', 'type=ABC', 10]])
-//   .subscribe((res) => console.log(JSON.stringify(res)), (err) => console.error(err));
-
-// Error handling
-// app.use((err, req, res, next) => {
-//   console.error(err);
-//   req.status(500).send({
-//     name: err.name,
-//     message: err.message,
-//     stack: err.stack
-//   });
-// });
-
-
-app.listen(PORT, () => {
-  console.log(`listening on port ${PORT}`);
+  // app.listen(PORT, () => {
+  //   console.log(`listening on port ${PORT}`);
+  // });
 });

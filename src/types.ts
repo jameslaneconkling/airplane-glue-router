@@ -18,28 +18,26 @@ TODO
 - how to define an adapter search handler to handle multiple graphs
  */
 export type Adapter = {
-  search(collection: Search, ranges: StandardRange[]): Observable<{ index: number, uri: string }>
+  search(collection: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
+  triples(subjects: string[], predicates: string[], ranges: StandardRange[]):
+    Observable<{ subject: string, predicate: string, index: number, object: URI | Literal | string }>
   // one approach to allow add-hoc pathValues: return grouped stream
   // search(collection: Search, ranges: StandardRange[]): Observable<[
   //   Observable<{ index: number, uri: string }>,
   //   Observable<PathValue>
   // ]>
-  // getTriples(subjects: string[], predicates: string[], ranges: StandardRange[]): Observable<{}>
 }
 
-export type NamedGraphAdapter = AnonymousGraphAdapter & {
+
+export type GraphDescription = {
   key: string,
-  label: string,
-}
-
-export type AnonymousGraphAdapter = {
   domains: RegExp[],
-  adapter: Adapter
+  adapter: Adapter,
+  label?: string,
 }
-
-export type GraphAdapter = NamedGraphAdapter | AnonymousGraphAdapter
 
 export type URI = {
+  type: 'uri'
   value: string
   prefix?: string
   suffix?: string
@@ -47,10 +45,11 @@ export type URI = {
 }
 
 export type Literal = {
+  type: 'literal',
   literal: string
   value: string
   language?: string
-  dataType: string
+  dataType?: string
 }
 
 export type Atom = Falcor.Atom & { $lang?: string, $dataType?: string }

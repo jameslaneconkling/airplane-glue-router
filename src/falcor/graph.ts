@@ -4,6 +4,7 @@ import {
 import {
   mergeMap,
   map,
+  bufferTime,
 } from 'rxjs/operators';
 import {
   xprod,
@@ -16,25 +17,25 @@ import {
   curie2uri,
   uri2curie,
 } from '../utils/rdf';
-import { ContextMap, StandardRange, GraphAdapter, Search } from "../types";
+import { ContextMap, StandardRange, GraphDescription, Search } from "../types";
 import { Route } from "falcor-router";
-import { matchName } from "../utils/adapter";
+import { matchKey } from "../utils/adapter";
 
 
 // TODO
 const searchIsValid = (search: Search) => search.type !== null && search.type !== undefined;
 
-export default (context: ContextMap, graphAdapters: GraphAdapter[]) => ([
+export default (context: ContextMap, graphs: GraphDescription[]) => ([
   {
-    route: 'graph[{keys:graphs}][{keys:collections}][{ranges:ranges}]',
-    get([_, graphs, collections, ranges]) {
-      return of(...xprod(graphs, collections)).pipe(
-        mergeMap(([graphName, collection]) => {
-          // TODO - allow multiple graphs to be included in the same query
-          const adapterDescription = matchName(graphAdapters, graphName);
-          if (!adapterDescription) {
+    route: 'graph[{keys:graphKeys}][{keys:collections}][{ranges:ranges}]',
+    get([_, graphKeys, collections, ranges]) {
+      return of(...xprod(graphKeys, collections)).pipe(
+        mergeMap(([graphKey, collection]) => {
+          // TODO - allow multiple graphKeys to be included in the same query
+          const graphDescription = matchKey(graphs, graphKey);
+          if (!graphDescription) {
             return [{
-              path: ['graph', graphName],
+              path: ['graph', graphKey],
               value: $error({ code: '404', message: '' })
             }];
           }
@@ -43,22 +44,23 @@ export default (context: ContextMap, graphAdapters: GraphAdapter[]) => ([
 
           if (!searchIsValid(search)) {
             return [{
-              path: ['graph', graphName, collection],
+              path: ['graph', graphKey, collection],
               value: $error({ code: '422', message: '' })
             }];
           }
 
           // TODO - can from standardize across: R[], Promise<R[]>, Observable<R>\
-          return adapterDescription.adapter.search(search, ranges).pipe(
+          return graphDescription.adapter.search(search, ranges).pipe(
             // TODO - handle search result nulls (if falcor doesn't already them?)
             map(({ index, uri }) => ({
-              path: ['graph', graphName, collection, index],
+              path: ['graph', graphKey, collection, index],
               // NOTE - an alternate graph topology could match resources to their graph via a named graph, rather than a regex against the resource URI
               // a resource's graph would be defined by the search route, not by its URI
               value: $ref(['resource', uri])
             })),
           );
-        })
+        }),
+        bufferTime(0)
       );
     },
   } as Route<[string, string[], string[], StandardRange[]]>,

@@ -17,25 +17,39 @@ export const defaultContext: ContextMap = {
 // wd: 'http://www.wikidata.org/',
 
 
+export const isLiteral = (object: string) => /^".*"(@.+)?(\^\^.+)?$/.test(object);
+
+export const isURI = (url: string) => /^https?:\/\//.test(url);
+
+export const isCurie = (uri: string) => !isURI(uri) && !isLiteral(uri);
+
 // TODO - all of these should be their own data types, rather than string munging
 // should the create functions throw errors if they are passed something that doesn't follow the uri/literal pattern?
 export const createUri = (context: ContextMap, uri: string): URI => {
   if (isCurie(uri)) {
     const [prefix, suffix] = uri.split(':');
+
+    if (context[prefix]) {
+      return {
+        type: 'uri',
+        value: `${context[prefix]}${suffix}`,
+        prefix,
+        suffix,
+        curie: uri
+      };
+    }
+
     return {
-      value: `${context[prefix]}${suffix}`,
-      prefix,
-      suffix,
-      curie: uri
+      type: 'uri',
+      value: uri
     };
   }
 
-  const contextList = toPairs(context);
-
-  for (const [prefix, namespace] of contextList) {
+  for (const [prefix, namespace] of toPairs(context)) {
     if (new RegExp(`^${namespace}`).test(uri)) {
       const suffix = uri.replace(namespace, '');
       return {
+        type: 'uri',
         value: uri,
         prefix,
         suffix,
@@ -45,61 +59,71 @@ export const createUri = (context: ContextMap, uri: string): URI => {
   }
 
   return {
+    type: 'uri',
     value: uri
   };
 };
 
-export const createLiteral = (context: ContextMap, literal: string): Literal => {
-  return {
+const STRING_DATA_TYPES = new Set([
+  'xsd:string', 'http://www.w3.org/2001/XMLSchema#string', 'rdf:langString', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', ''
+]);
+export const createLiteral = (literal: string): Literal => {
+  const literalType: Literal = {
+    type: 'literal',
     literal,
     value: literal.replace(/"\^\^.*$/, '') // should this attempt to parse ints/floats/booleans?
       .replace(/"(@[a-z]+)?$/, '')
       .replace(/^"/, ''),
-    language: /".*"@/.test(literal) ?
-      literal.replace(/^".*"@/, '') :
-      undefined,
-    dataType: /^".*"\^\^/.test(literal) ?
-      literal.replace(/^".*"\^\^/, '') :
-      `${context.xsd}string`
   };
-};
 
-export const isLiteral = (literal: string) => /^".*"$/.test(literal);
-
-
-export const getValue = (object: string) => object
-  .replace(/"\^\^.*$/, '')
-  .replace(/"(@[a-z]+)?$/, '')
-  .replace(/^"/, '');
-
-
-export const getType = (context: ContextMap, object: string) => {
-  if (/^".*"\^\^/.test(object)) {
-    // non-string-literal type
-    return object.replace(/^".*"\^\^/, '');
-  } else if (/^".*"/.test(object)) {
-    // string literal type
-    return `${context.xsd}string`;
+  if (/".*"@/.test(literal)) {
+    literalType.language = literal.replace(/^".*"@/, '');
   }
 
-  // relationship type
-  return 'relationship';
+  if (/^".*"\^\^/.test(literal)) {
+    const dataType = literal.replace(/^".*"\^\^/, '');
+
+    if (!STRING_DATA_TYPES.has(dataType)) {
+      literalType.dataType = dataType;
+    }
+  }
+
+  return literalType;
 };
 
+export const createObject = (context: ContextMap, object: string) => isLiteral(object) ?
+  createLiteral(object) :
+  createUri(context, object);
 
-export const getLanguage = (object: string) => {
-  return /".*"@/.test(object) ?
-    object.replace(/^".*"@/, '') :
-    undefined
-};
+// export const getValue = (object: string) => object
+//   .replace(/"\^\^.*$/, '')
+//   .replace(/"(@[a-z]+)?$/, '')
+//   .replace(/^"/, '');
 
-export const isUri = (url: string) => /^https?:\/\//.test(url);
 
-export const isCurie = (uri: string) => !isUri(uri) && !isLiteral(uri);
+// export const getType = (context: ContextMap, object: string) => {
+//   if (/^".*"\^\^/.test(object)) {
+//     // non-string-literal type
+//     return object.replace(/^".*"\^\^/, '');
+//   } else if (/^".*"/.test(object)) {
+//     // string literal type
+//     return `${context.xsd}string`;
+//   }
+
+//   // relationship type
+//   return 'relationship';
+// };
+
+
+// export const getLanguage = (object: string) => {
+//   return /".*"@/.test(object) ?
+//     object.replace(/^".*"@/, '') :
+//     undefined
+// };
 
 export const splitCurie = (curie: string) => curie.split(':');
 
-export const uri2curie = (context: ContextMap, uri: string) => {
+export const uri2Curie = (context: ContextMap, uri: string) => {
   const contextList = toPairs(context);
 
   for (const [prefix, uriNameSpace] of contextList) {
@@ -111,13 +135,13 @@ export const uri2curie = (context: ContextMap, uri: string) => {
   return uri;
 };
 
-export const curie2uri = (context: ContextMap, uri: string) => {
-  if (isCurie(uri)) {
-    const [prefix, reference] = splitCurie(uri);
+export const curie2URI = (context: ContextMap, curie: string) => {
+  if (isCurie(curie)) {
+    const [prefix, reference] = splitCurie(curie);
     if (context[prefix]) {
       return context[prefix] + reference;
     }
   }
 
-  return uri;
+  return curie;
 };

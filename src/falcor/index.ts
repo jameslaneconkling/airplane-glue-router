@@ -1,6 +1,7 @@
 import Router from 'falcor-router';
 import graphRoutes from './graph';
-import { ContextMap, GraphAdapter } from '../types';
+import resourceRoutes from './resource';
+import { ContextMap, GraphDescription } from '../types';
 import { defaultContext } from '../utils/rdf';
 
 
@@ -9,10 +10,11 @@ type RouterMeta = { [key: string]: any };
 
 // TODO - split project into router + implementation.  this function becomes the default export
 export default (
-  { context = defaultContext, graphAdapters }: { context?: ContextMap, graphAdapters: GraphAdapter[] }
+  { context = defaultContext, graphs }: { context?: ContextMap, graphs: GraphDescription[] }
 ) => (
   class JunoRouter extends Router.createClass([
-    ...graphRoutes(context, graphAdapters)
+    ...graphRoutes(context, graphs),
+    ...resourceRoutes(context, graphs)
   ]) {
     public meta: RouterMeta
     constructor(meta: RouterMeta = {}) {

@@ -1,14 +1,22 @@
 import createRouter from '../../src/falcor/index';
-import memoryAdapter from '../../src/adapters/memoryAdapter';
-import { defaultContext } from '../../src/utils/rdf';
+import memoryAdapter from '../../src/adapters/memory';
 
+
+export const context = {
+  rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+  xsd: 'http://www.w3.org/2001/XMLSchema#',
+  owl: 'http://www.w3.org/2002/07/owl#',
+  skos: 'http://www.w3.org/2004/02/skos/core#',
+  schema: 'http://schema.org/'
+};
 
 export const testN3 = `
-  @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-  @prefix rdfs: <${defaultContext.rdfs}> .
-  @prefix xsd: <${defaultContext.xsd}> .
-  @prefix schema: <${defaultContext.schema}> .
-  @prefix skos: <${defaultContext.skos}> .
+  @prefix rdf: <${context.rdf}> .
+  @prefix rdfs: <${context.rdfs}> .
+  @prefix xsd: <${context.xsd}> .
+  @prefix skos: <${context.skos}> .
+  @prefix schema: <${context.schema}> .
 
   <data:james> a schema:Person ;
       rdfs:label "James Conkling"@en ;
@@ -102,13 +110,14 @@ export const testN3 = `
       rdfs:label "sibling" .
 `;
 
-export const setupTestRouter = (n3) => {
+export const setupTestRouter = async (n3) => {
   const Router = createRouter({
-    graphAdapters: [{
+    context,
+    graphs: [{
         key: 'test',
         label: 'Test',
-        domains: [/^test/],
-        adapter: memoryAdapter({ n3 }),
+        domains: [/^data/],
+        adapter: await memoryAdapter({ n3 }),
       }]
   });
 
