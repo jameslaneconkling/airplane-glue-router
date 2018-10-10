@@ -34,7 +34,7 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
               path: ['resource', subject, predicateCurie, index],
               value: objectType.type === 'literal' ?
                 $atom(objectType.value, objectType.dataType, objectType.language) :
-                $ref(['resource', objectType.value])
+                $ref(['resource', objectType.object])
             };
           } else if (object.type === 'literal') {
             return {
@@ -44,7 +44,7 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
           } else if (object.type === 'uri') {
             return {
               path: ['resource', subject, predicateCurie, index],
-              value: $ref(['resource', object.value])
+              value: $ref(['resource', object.object])
             };
           }
 

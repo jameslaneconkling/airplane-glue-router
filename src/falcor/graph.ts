@@ -13,10 +13,6 @@ import { parse } from 'query-string';
 import {
   $ref, $error,
 } from '../utils/falcor';
-import {
-  curie2uri,
-  uri2curie,
-} from '../utils/rdf';
 import { ContextMap, StandardRange, GraphDescription, Search } from "../types";
 import { Route } from "falcor-router";
 import { matchKey } from "../utils/adapter";

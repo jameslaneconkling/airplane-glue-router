@@ -20,7 +20,7 @@ TODO
 export type Adapter = {
   search(collection: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
   triples(subjects: string[], predicates: string[], ranges: StandardRange[]):
-    Observable<{ subject: string, predicate: string, index: number, object: URI | Literal | string }>
+    Observable<{ subject: string, predicate: string, index: number, object: Obj | string }>
   // one approach to allow add-hoc pathValues: return grouped stream
   // search(collection: Search, ranges: StandardRange[]): Observable<[
   //   Observable<{ index: number, uri: string }>,
@@ -36,9 +36,12 @@ export type GraphDescription = {
   label?: string,
 }
 
+// rather than create new types, why not just use refs and atoms
+export type Obj = URI | Literal | Error
+
 export type URI = {
   type: 'uri'
-  value: string
+  object: string
   prefix?: string
   suffix?: string
   curie?: string
@@ -46,10 +49,15 @@ export type URI = {
 
 export type Literal = {
   type: 'literal',
-  literal: string
+  object: string
   value: string
   language?: string
   dataType?: string
+}
+
+export type Error = {
+  type: 'error'
+  object: string
 }
 
 export type Atom = Falcor.Atom & { $lang?: string, $dataType?: string }

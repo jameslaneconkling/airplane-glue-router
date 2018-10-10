@@ -1,5 +1,5 @@
 import { toPairs } from 'ramda';
-import { ContextMap, URI, Literal } from '../types';
+import { ContextMap, URI, Literal, Error } from '../types';
 
 
 export const defaultContext: ContextMap = {
@@ -17,40 +17,39 @@ export const defaultContext: ContextMap = {
 // wd: 'http://www.wikidata.org/',
 
 
-export const isLiteral = (object: string) => /^".*"(@.+)?(\^\^.+)?$/.test(object);
-
-export const isURI = (url: string) => /^https?:\/\//.test(url);
-
-export const isCurie = (uri: string) => !isURI(uri) && !isLiteral(uri);
+export const isLiteral = (object: string) => /^".*"/.test(object);
 
 // TODO - all of these should be their own data types, rather than string munging
 // should the create functions throw errors if they are passed something that doesn't follow the uri/literal pattern?
 export const createUri = (context: ContextMap, uri: string): URI => {
-  if (isCurie(uri)) {
-    const [prefix, suffix] = uri.split(':');
+  // Don't try to expand external curies
+  // if (isCurie(uri)) {
+  //   const [prefix, suffix] = uri.split(':');
 
-    if (context[prefix]) {
-      return {
-        type: 'uri',
-        value: `${context[prefix]}${suffix}`,
-        prefix,
-        suffix,
-        curie: uri
-      };
-    }
+  //   if (context[prefix]) {
+  //     return {
+  //       type: 'uri',
+  //       object: uri,
+  //       value: `${context[prefix]}${suffix}`,
+  //       prefix,
+  //       suffix,
+  //       curie: uri
+  //     };
+  //   }
 
-    return {
-      type: 'uri',
-      value: uri
-    };
-  }
+  //   return {
+  //     type: 'uri',
+  //     object: uri,
+  //     value: uri
+  //   };
+  // }
 
   for (const [prefix, namespace] of toPairs(context)) {
     if (new RegExp(`^${namespace}`).test(uri)) {
       const suffix = uri.replace(namespace, '');
       return {
         type: 'uri',
-        value: uri,
+        object: uri,
         prefix,
         suffix,
         curie: `${prefix}:${suffix}`
@@ -60,31 +59,39 @@ export const createUri = (context: ContextMap, uri: string): URI => {
 
   return {
     type: 'uri',
-    value: uri
+    object: uri,
   };
 };
 
 const STRING_DATA_TYPES = new Set([
   'xsd:string', 'http://www.w3.org/2001/XMLSchema#string', 'rdf:langString', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', ''
 ]);
-export const createLiteral = (literal: string): Literal => {
-  const literalType: Literal = {
-    type: 'literal',
-    literal,
-    value: literal.replace(/"\^\^.*$/, '') // should this attempt to parse ints/floats/booleans?
-      .replace(/"(@[a-z]+)?$/, '')
-      .replace(/^"/, ''),
-  };
 
-  if (/".*"@/.test(literal)) {
-    literalType.language = literal.replace(/^".*"@/, '');
+export const createLiteral = (context: ContextMap, literal: string): Literal | Error => {
+  const matched = literal.match(/".*"/g);
+
+  if (!matched) {
+    return {
+      type: 'error',
+      object: literal,
+    }
   }
 
-  if (/^".*"\^\^/.test(literal)) {
-    const dataType = literal.replace(/^".*"\^\^/, '');
+  const literalType: Literal = {
+    type: 'literal',
+    object: literal,
+    value: matched[0].replace(/^"/, '').replace(/"$/, ''),
+  };
+
+  if (/^".*".*@/.test(literal)) {
+    literalType.language = literal.replace(/^".*".*@/g, '').replace(/\^\^.*$/, '');
+  }
+
+  if (/^".*".*\^\^/.test(literal)) {
+    const dataType = literal.replace(/^".*".*\^\^/g, '').replace(/@.*$/, '');
 
     if (!STRING_DATA_TYPES.has(dataType)) {
-      literalType.dataType = dataType;
+      literalType.dataType = uri2Curie(context, dataType.replace(/^</, '').replace(/>$/, ''));
     }
   }
 
@@ -92,36 +99,8 @@ export const createLiteral = (literal: string): Literal => {
 };
 
 export const createObject = (context: ContextMap, object: string) => isLiteral(object) ?
-  createLiteral(object) :
+  createLiteral(context, object) :
   createUri(context, object);
-
-// export const getValue = (object: string) => object
-//   .replace(/"\^\^.*$/, '')
-//   .replace(/"(@[a-z]+)?$/, '')
-//   .replace(/^"/, '');
-
-
-// export const getType = (context: ContextMap, object: string) => {
-//   if (/^".*"\^\^/.test(object)) {
-//     // non-string-literal type
-//     return object.replace(/^".*"\^\^/, '');
-//   } else if (/^".*"/.test(object)) {
-//     // string literal type
-//     return `${context.xsd}string`;
-//   }
-
-//   // relationship type
-//   return 'relationship';
-// };
-
-
-// export const getLanguage = (object: string) => {
-//   return /".*"@/.test(object) ?
-//     object.replace(/^".*"@/, '') :
-//     undefined
-// };
-
-export const splitCurie = (curie: string) => curie.split(':');
 
 export const uri2Curie = (context: ContextMap, uri: string) => {
   const contextList = toPairs(context);
@@ -136,11 +115,15 @@ export const uri2Curie = (context: ContextMap, uri: string) => {
 };
 
 export const curie2URI = (context: ContextMap, curie: string) => {
-  if (isCurie(curie)) {
-    const [prefix, reference] = splitCurie(curie);
-    if (context[prefix]) {
-      return context[prefix] + reference;
-    }
+  const idx = curie.indexOf(':');
+
+  if (idx === -1) {
+    return curie;
+  }
+
+  const [prefix, reference] = [curie.slice(0, idx), curie.slice(idx+1)];
+  if (context[prefix]) {
+    return context[prefix] + reference;
   }
 
   return curie;
