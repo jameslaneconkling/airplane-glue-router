@@ -3,7 +3,7 @@ import { stringify } from 'query-string';
 import { setupTestRouter, testN3, assertFailure } from '../utils/setup';
 
 
-test.skip('Should return search result resources', async (assert) => {
+test('Should return search result resources', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
   const collection = stringify({ type: 'schema:Person' });
@@ -12,18 +12,22 @@ test.skip('Should return search result resources', async (assert) => {
     graph: {
       test: {
         [collection]: {
-          0: {
-            'rdfs:label': {
-              0: 'James Conkling'
-            }
-          },
-          1: {
-            'rdfs:label': {
-              0: 'Micah Conkling'
-            }
-          }
+          0: { $type: 'ref', value: ['resource', 'test:james'] },
+          1: { $type: 'ref', value: ['resource', 'test:micah'] }
         }    
       }
+    },
+    resource: {
+      'test:james': {
+        'rdfs:label': {
+          0: { $type: 'atom', value: 'James Conkling', $lang: 'en' }
+        }
+      },
+      'test:micah': {
+        'rdfs:label': {
+          0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
+        }
+      },
     }
   };
 

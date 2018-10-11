@@ -10,17 +10,15 @@ import {
 import {
   xprod,
 } from 'ramda';
-import { parse } from 'query-string';
 import {
   $ref, $error,
 } from '../utils/falcor';
-import { ContextMap, GraphDescription, Search } from "../types";
+import { ContextMap, GraphDescription } from "../types";
 import { Route, PathValue, StandardRange } from "falcor-router";
 import { matchKey } from "../utils/adapter";
+import { uri2Curie } from "../utils/rdf";
+import { parseSearch } from "../utils/search";
 
-
-// TODO
-const searchIsValid = (search: Search) => search.type !== null && search.type !== undefined;
 
 export default (context: ContextMap, graphs: GraphDescription[]) => ([
   {
@@ -37,9 +35,9 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
             });
           }
 
-          const search: Search = parse(collection);
+          const search = parseSearch(context, collection);
 
-          if (!searchIsValid(search)) {
+          if (search === null) {
             return of({
               path: ['graph', graphKey, collection],
               value: $error('422', '')
@@ -53,7 +51,7 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
               path: ['graph', graphKey, collection, index],
               // NOTE - an alternate graph topology could match resources to their graph via a named graph, rather than a regex against the resource URI
               // a resource's graph would be defined by the search route, not by its URI
-              value: $ref(['resource', uri])
+              value: $ref(['resource', uri2Curie(context, uri)])
             })),
           );
         }),
