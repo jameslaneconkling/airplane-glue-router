@@ -23,8 +23,5 @@ export default (
       super();
       this.meta = meta;
     }
-    // public routeUnhandledPathsTo(dataSource) {
-    //   return dataSource // TODO - why isn't dataSource typechecked
-    // }
   }
 };

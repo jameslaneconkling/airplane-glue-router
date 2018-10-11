@@ -8,13 +8,13 @@ test('Should return object literals', async (assert) => {
 
   const expectedResponse = {
     resource: {
-      'data:james': {
+      'test:james': {
         'schema:alternateName': {
           0: { $type: 'atom', value: 'JLC', $lang: 'en' },
           1: { $type: 'atom', value: 'Jamie', $lang: 'en' }
         }
       },
-      'data:micah': {
+      'test:micah': {
         'schema:alternateName': {
           0: { $type: 'atom', value: 'Mitzan', $lang: 'en' },
           1: { $type: 'atom' } // TODO
@@ -23,7 +23,7 @@ test('Should return object literals', async (assert) => {
     }
   };
 
-  router.get([['resource', ['data:james', 'data:micah'], 'schema:alternateName', { to: 1 }]])
+  router.get([['resource', ['test:james', 'test:micah'], 'schema:alternateName', { to: 1 }]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
@@ -36,22 +36,22 @@ test('Should return object relationships', async (assert) => {
 
   const expectedResponse = {
     resource: {
-      'data:james': {
+      'test:james': {
         'schema:sibling': {
-          0: { $type: 'ref', value: ['resource', 'data:micah'] },
-          1: { $type: 'ref', value: ['resource', 'data:parker'] },
+          0: { $type: 'ref', value: ['resource', 'test:micah'] },
+          1: { $type: 'ref', value: ['resource', 'test:parker'] },
         },
         'schema:alternateName': {
           0: { $type: 'atom', value: 'JLC', $lang: 'en' },
           1: { $type: 'atom', value: 'Jamie', $lang: 'en' },
         }
       },
-      'data:micah': {
+      'test:micah': {
         'rdfs:label': {
           0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
         }
       },
-      'data:parker': {
+      'test:parker': {
         'rdfs:label': {
           0: { $type: 'atom', value: 'Parker Taylor', $lang: 'en' }
         }
@@ -59,7 +59,41 @@ test('Should return object relationships', async (assert) => {
     }
   };
 
-  router.get([['resource', 'data:james', ['schema:sibling', 'schema:alternateName'], { to: 1 }, 'rdfs:label', 0]])
+  router.get([['resource', 'test:james', ['schema:sibling', 'schema:alternateName'], { to: 1 }, 'rdfs:label', 0]])
+    .subscribe((res) => {
+      assert.deepEqual(res.jsonGraph, expectedResponse);
+    }, assertFailure(assert));
+});
+
+
+test('Should handle both uris that can and can\'t be collapsed to curies', async (assert) => {
+  assert.plan(1);
+  const router = await setupTestRouter(testN3);
+
+  const expectedResponse = {
+    resource: {
+      'test:james': {
+        'schema:sibling': {
+          0: { $type: 'ref', value: ['resource', 'test:micah'] },
+        },
+        'schema:birthPlace': {
+          0: { $type: 'ref', value: ['resource', 'http://www.wikidata.org/wiki/Q60'] },
+        }
+      },
+      'test:micah': {
+        'rdfs:label': {
+          0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
+        }
+      },
+      'http://www.wikidata.org/wiki/Q60': {
+        'rdfs:label': {
+          0: { $type: 'atom', value: 'Portland, ME', $lang: 'en' }
+        }
+      }
+    }
+  };
+
+  router.get([['resource', 'test:james', ['schema:birthPlace', 'schema:sibling'], 0, 'rdfs:label', 0]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
@@ -72,7 +106,7 @@ test.skip('Should return objects length', async (assert) => {
 
   const expectedResponse = {
     resource: {
-      'data:james': {
+      'test:james': {
         'schema:sibling': {
           0: {
             'rdfs:label': { 0: 'Micah Conkling' }
@@ -88,8 +122,8 @@ test.skip('Should return objects length', async (assert) => {
   };
 
   router.get([
-    ['resource', 'data:james', 'schema:sibling', [{ to: 1 }, 'length'], 'rdfs:label', 0],
-    ['resource', 'data:james', 'schema:alternateName', [{ to: 1 }, 'length']]
+    ['resource', 'test:james', 'schema:sibling', [{ to: 1 }, 'length'], 'rdfs:label', 0],
+    ['resource', 'test:james', 'schema:alternateName', [{ to: 1 }, 'length']]
   ])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
@@ -124,16 +158,37 @@ test.skip('Should return null for resources that don\'t exist', async (assert) =
 
   const expectedResponse = {
     resource: {
-      'data:abc': null
+      'test:abc': null
     }
   };
 
-  router.get([['resource', 'data:abc', 'rdfs:label', 0]])
+  router.get([['resource', 'test:abc', 'rdfs:label', 0]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
 });
 
+
+test.skip('Should return null for values that don\'t exist', async (assert) => {
+  assert.plan(1);
+  const router = await setupTestRouter(testN3);
+
+  const expectedResponse = {
+    resource: {
+      'test:james': {
+        'rdfs:label': {
+          10: null,
+          11: null,
+        }
+      }
+    }
+  };
+
+  router.get([['resource', 'test:james', 'rdfs:label', [10, 11]]])
+    .subscribe((res) => {
+      assert.deepEqual(res.jsonGraph, expectedResponse);
+    }, assertFailure(assert));
+});
 
 test.skip('Should return null for predicates that don\'t exist', async (assert) => {
   assert.plan(1);
@@ -141,13 +196,13 @@ test.skip('Should return null for predicates that don\'t exist', async (assert) 
 
   const expectedResponse = {
     resource: {
-      'data:james': {
+      'test:james': {
         'nonexistant': null
       }
     }
   };
 
-  router.get([['resource', 'data:james', 'nonexistant', { to: 1 }]])
+  router.get([['resource', 'test:james', 'nonexistant', { to: 1 }]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
