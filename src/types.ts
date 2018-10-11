@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { Atom, StandardRange, ErrorSentinel, Primitive } from 'falcor-router';
+import { StandardRange, Primitive } from 'falcor-router';
 
 
 export type ContextMap = {
