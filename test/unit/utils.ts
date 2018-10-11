@@ -1,6 +1,6 @@
 import test from 'tape';
 import { cartesianProd } from '../../src/utils/misc';
-import { isLiteral, createObject } from '../../src/utils/rdf';
+import { isLiteral, createSentinel } from '../../src/utils/rdf';
 
 
 test('cartesian product', (assert) => {
@@ -26,7 +26,7 @@ test('isLiteral', (assert) => {
   // TODO - handle multi-line literals
 });
 
-test('createObject', (assert) => {
+test('createSentinel', (assert) => {
   assert.plan(9);
   const context = {
     xsd: 'http://www.w3.org/2001/XMLSchema#',
@@ -38,14 +38,14 @@ test('createObject', (assert) => {
     - ensure this follows the RDF spec for literals and URIs
     - rather than create new types Literal, URI, Error, why not just use falcor atom/ref/error sentinels?
   */
-  assert.deepEqual(createObject(context, '"Literal"'), { type: 'literal', object: '"Literal"', value: 'Literal' });
-  assert.deepEqual(createObject(context, '"Literal"@en'), { type: 'literal', object: '"Literal"@en', value: 'Literal', language: 'en' });
-  assert.deepEqual(createObject(context, '"Literal"@fr-be'), { type: 'literal', object: '"Literal"@fr-be', value: 'Literal', language: 'fr-be' });
-  assert.deepEqual(createObject(context, '"Literal"@fr-be^^rdf:langString'), { type: 'literal', object: '"Literal"@fr-be^^rdf:langString', value: 'Literal', language: 'fr-be' });
-  assert.deepEqual(createObject(context, '"Literal"^^rdf:langString@fr-be'), { type: 'literal', object: '"Literal"^^rdf:langString@fr-be', value: 'Literal', language: 'fr-be' });
-  assert.deepEqual(createObject(context, '"1"^^xsd:integer'), { type: 'literal', object: '"1"^^xsd:integer', value: '1', dataType: 'xsd:integer' });
-  assert.deepEqual(createObject(context, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'literal', object: '"1"^^<http://www.w3.org/2001/XMLSchema#integer>', value: '1', dataType: 'xsd:integer' });
-  assert.deepEqual(createObject({}, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'literal', object: '"1"^^<http://www.w3.org/2001/XMLSchema#integer>', value: '1', dataType: 'http://www.w3.org/2001/XMLSchema#integer' });
-  assert.deepEqual(createObject(context, '"Literal "with \'quotes\'" and @ and ^^"@fr-be^^rdf:langString'), { type: 'literal', object: '"Literal "with \'quotes\'" and @ and ^^"@fr-be^^rdf:langString', value: 'Literal "with \'quotes\'" and @ and ^^', language: 'fr-be' });
+  assert.deepEqual(createSentinel(context, '"Literal"'), { type: 'atom', literal: 'Literal' });
+  assert.deepEqual(createSentinel(context, '"Literal"@en'), { type: 'atom', literal: 'Literal', language: 'en' });
+  assert.deepEqual(createSentinel(context, '"Literal"@fr-be'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
+  assert.deepEqual(createSentinel(context, '"Literal"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
+  assert.deepEqual(createSentinel(context, '"Literal"^^rdf:langString@fr-be'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
+  assert.deepEqual(createSentinel(context, '"1"^^xsd:integer'), { type: 'atom', literal: '1', dataType: 'xsd:integer' });
+  assert.deepEqual(createSentinel(context, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'atom', literal: '1', dataType: 'xsd:integer' });
+  assert.deepEqual(createSentinel({}, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'atom', literal: '1', dataType: 'http://www.w3.org/2001/XMLSchema#integer' });
+  assert.deepEqual(createSentinel(context, '"Literal "with \'quotes\'" and @ and ^^"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal "with \'quotes\'" and @ and ^^', language: 'fr-be' });
   // TODO - ensure that literal URIS are handled as literals and not objects
 });

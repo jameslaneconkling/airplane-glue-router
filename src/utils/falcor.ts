@@ -1,7 +1,8 @@
 import {
   range,
 } from 'ramda';
-import { StandardRange, Atom } from '../types';
+import { Path } from 'falcor';
+import { StandardRange, Atom, Ref, ErrorSentinel } from 'falcor-router';
 
 
 /**
@@ -18,18 +19,18 @@ export const range2List = ({ from, to }: StandardRange) => range(from, to + 1);
  */
 export const range2LimitOffset = ({ from, to }: StandardRange) => ({ offset: from, limit: to + 1 - from, levelGraphLimit: to + 1 });
 
-export const $atom = (value: any, dataType?: string, lang?: string) => {
+export const $atom = (value: string | boolean | number | null, dataType?: string, language?: string): Atom => {
   const atom: Atom = { $type: 'atom', value };
 
   if (dataType && dataType !== 'xsd:string') {
     atom.$dataType = dataType;
   }
 
-  if (lang) {
-    atom.$lang = lang;
+  if (language) {
+    atom.$lang = language;
   }
 
   return atom;
 };
-export const $ref = (value: string[]) => ({ $type: 'ref', value });
-export const $error = (value: any) => ({ $type: 'error', value });
+export const $ref = (value: Path): Ref => ({ $type: 'ref', value });
+export const $error = (code, message): ErrorSentinel => ({ $type: 'error', value: { code, message } });

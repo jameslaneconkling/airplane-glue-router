@@ -9,11 +9,11 @@ declare module 'falcor-router' {
     import { DataSource } from 'falcor';
     import {
         PathSet,
-        PathValue,
         InvalidPath,
         JSONGraph,
         JSONEnvelope,
-        JSONGraphEnvelope
+        JSONGraphEnvelope,
+        Path
     } from 'falcor-json-graph';
     import { Observable } from 'rxjs';
 
@@ -36,31 +36,50 @@ declare module 'falcor-router' {
             constructor(options?: RouterOptions);
         }
     
-        interface AbstractRoute {
+        type AbstractRoute = {
             route: string;
         }
     
-        interface CallRoute<P extends PathSet = PathSet> extends AbstractRoute {
+        type CallRouteResult = PathValue | InvalidPath | Array<PathValue | InvalidPath> | JSONGraphEnvelope;
+
+        type CallRoute<P extends PathSet = PathSet> = AbstractRoute & {
             call(callPath: P, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>;
         }
     
-        interface GetRoute<P extends PathSet = PathSet> extends AbstractRoute {
-            // get(pathset: PathSet): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
-            get(pathset: P): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
+        type GetRoute<P extends PathSet = PathSet> = AbstractRoute & {
+            get(pathset: P): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>;
         }
     
-        interface SetRoute extends AbstractRoute {
-            set(jsonGraph: JSONGraph): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
+        type SetRoute = AbstractRoute & {
+            set(jsonGraph: JSONGraph): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>;
         }
     
         type Route<P extends PathSet = PathSet> = GetRoute<P> | SetRoute | CallRoute<P>;
-        type RouteResult = PathValue | Array<PathValue> | JSONEnvelope<any>;
-        type CallRouteResult = PathValue | InvalidPath | Array<PathValue | InvalidPath> | JSONGraphEnvelope;
     
         interface RouterOptions {
             debug?: boolean;
             maxPaths?: number;
             maxRefFollow?: number;
+        }
+
+        type Primitive = string | boolean | number | null;
+
+        type Atom = { $type: 'atom', value: Primitive, $lang?: string, $dataType?: string }
+        
+        type Ref = { $type: 'ref', value: Path }
+        
+        type ErrorSentinel = { $type: 'error', value: { code: string, message: string } }
+        
+        type Sentinel = Atom | Ref | ErrorSentinel
+        
+        type PathValue = {
+          path: string | PathSet
+          value: Sentinel | Primitive
+        }
+
+        type StandardRange = {
+          from: number
+          to: number
         }
     }
     

@@ -10,7 +10,7 @@ export const matchDomain = (graphs: GraphDescription[], domainName: string) => (
 );
 
 export const groupUrisByGraph = (graphs: GraphDescription[], uris: string[]) => {
-  return values(uris.reduce<{ [key: string]: { adapter: Adapter, uris: string[] } }>((grouped, uri) => {
+  return values(uris.reduce<{ [key: string]: { adapter: Adapter, uris: string[], key: string } }>((grouped, uri) => {
     const graphDescription = matchDomain(graphs, uri);
     if (graphDescription === undefined) {
       // TODO - handle unmatched resources?
@@ -20,7 +20,11 @@ export const groupUrisByGraph = (graphs: GraphDescription[], uris: string[]) => 
     if (grouped[graphDescription.key]) {
       grouped[graphDescription.key].uris.push(uri);
     } else {
-      grouped[graphDescription.key] = { adapter: graphDescription.adapter, uris: [uri] };
+      grouped[graphDescription.key] = {
+        adapter: graphDescription.adapter,
+        key: graphDescription.key,
+        uris: [uri]
+      };
     }
 
     return grouped;

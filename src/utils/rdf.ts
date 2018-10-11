@@ -1,5 +1,5 @@
 import { toPairs } from 'ramda';
-import { ContextMap, URI, Literal, Error } from '../types';
+import { ContextMap, AdapterAtom, AdapterError, AdapterRef, AdapterSentinel } from '../types';
 
 
 export const defaultContext: ContextMap = {
@@ -21,86 +21,56 @@ export const isLiteral = (object: string) => /^".*"/.test(object);
 
 // TODO - all of these should be their own data types, rather than string munging
 // should the create functions throw errors if they are passed something that doesn't follow the uri/literal pattern?
-export const createUri = (context: ContextMap, uri: string): URI => {
-  // Don't try to expand external curies
-  // if (isCurie(uri)) {
-  //   const [prefix, suffix] = uri.split(':');
-
-  //   if (context[prefix]) {
-  //     return {
-  //       type: 'uri',
-  //       object: uri,
-  //       value: `${context[prefix]}${suffix}`,
-  //       prefix,
-  //       suffix,
-  //       curie: uri
-  //     };
-  //   }
-
-  //   return {
-  //     type: 'uri',
-  //     object: uri,
-  //     value: uri
-  //   };
-  // }
-
+export const createReference = (context: ContextMap, uri: string): AdapterRef => {
   for (const [prefix, namespace] of toPairs(context)) {
     if (new RegExp(`^${namespace}`).test(uri)) {
       const suffix = uri.replace(namespace, '');
       return {
-        type: 'uri',
-        object: uri,
-        prefix,
-        suffix,
-        curie: `${prefix}:${suffix}`
+        type: 'ref',
+        uri: `${prefix}:${suffix}`
       };
     }
   }
 
-  return {
-    type: 'uri',
-    object: uri,
-  };
+  return { type: 'ref', uri };
 };
 
 const STRING_DATA_TYPES = new Set([
   'xsd:string', 'http://www.w3.org/2001/XMLSchema#string', 'rdf:langString', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', ''
 ]);
 
-export const createLiteral = (context: ContextMap, literal: string): Literal | Error => {
+export const createAtom = (context: ContextMap, literal: string): AdapterAtom | AdapterError => {
   const matched = literal.match(/".*"/g);
 
   if (!matched) {
-    return {
-      type: 'error',
-      object: literal,
-    }
+    // TODO - better error code + message
+    return { type: 'error', value: { code: '500', message: `Adapter triples handler returned unhandleable object type: ${JSON.stringify(literal)}` } };
   }
 
-  const literalType: Literal = {
-    type: 'literal',
-    object: literal,
-    value: matched[0].replace(/^"/, '').replace(/"$/, ''),
+  const atom: AdapterAtom = {
+    type: 'atom',
+    literal: matched[0].replace(/^"/, '').replace(/"$/, ''),
   };
 
-  if (/^".*".*@/.test(literal)) {
-    literalType.language = literal.replace(/^".*".*@/g, '').replace(/\^\^.*$/, '');
-  }
 
   if (/^".*".*\^\^/.test(literal)) {
     const dataType = literal.replace(/^".*".*\^\^/g, '').replace(/@.*$/, '');
 
     if (!STRING_DATA_TYPES.has(dataType)) {
-      literalType.dataType = uri2Curie(context, dataType.replace(/^</, '').replace(/>$/, ''));
+      atom.dataType = uri2Curie(context, dataType.replace(/^</, '').replace(/>$/, ''));
     }
   }
 
-  return literalType;
+  if (/^".*".*@/.test(literal)) {
+    atom.language = literal.replace(/^".*".*@/g, '').replace(/\^\^.*$/, '');
+  }
+
+  return atom;
 };
 
-export const createObject = (context: ContextMap, object: string) => isLiteral(object) ?
-  createLiteral(context, object) :
-  createUri(context, object);
+export const createSentinel = (context: ContextMap, object: string): AdapterSentinel => isLiteral(object) ?
+  createAtom(context, object) :
+  createReference(context, object);
 
 export const uri2Curie = (context: ContextMap, uri: string) => {
   const contextList = toPairs(context);

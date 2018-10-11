@@ -1,5 +1,5 @@
-import Falcor from 'falcor';
 import { Observable } from 'rxjs';
+import { Atom, StandardRange, ErrorSentinel, Primitive } from 'falcor-router';
 
 
 export type ContextMap = {
@@ -20,7 +20,7 @@ TODO
 export type Adapter = {
   search(collection: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
   triples(subjects: string[], predicates: string[], ranges: StandardRange[]):
-    Observable<{ subject: string, predicate: string, index: number, object: Obj | string }>
+    Observable<{ subject: string, predicate: string, index: number, object: AdapterSentinel | string }>
   // one approach to allow add-hoc pathValues: return grouped stream
   // search(collection: Search, ranges: StandardRange[]): Observable<[
   //   Observable<{ index: number, uri: string }>,
@@ -29,40 +29,15 @@ export type Adapter = {
 }
 
 
+export type AdapterAtom = { type: 'atom', literal: Primitive, dataType?: string, language?: string }
+export type AdapterError = { type: 'error', value: any }
+export type AdapterRef = { type: 'ref', uri: string }
+export type AdapterSentinel = AdapterAtom | AdapterError | AdapterRef
+
+
 export type GraphDescription = {
   key: string,
   domains: RegExp[],
   adapter: Adapter,
   label?: string,
-}
-
-// rather than create new types, why not just use refs and atoms
-export type Obj = URI | Literal | Error
-
-export type URI = {
-  type: 'uri'
-  object: string
-  prefix?: string
-  suffix?: string
-  curie?: string
-}
-
-export type Literal = {
-  type: 'literal',
-  object: string
-  value: string
-  language?: string
-  dataType?: string
-}
-
-export type Error = {
-  type: 'error'
-  object: string
-}
-
-export type Atom = Falcor.Atom & { $lang?: string, $dataType?: string }
-
-export type StandardRange = {
-  from: number,
-  to: number
 }

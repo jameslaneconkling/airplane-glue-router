@@ -30,7 +30,7 @@ test('Should return object literals', async (assert) => {
 });
 
 
-test('Should return objects relationships', async (assert) => {
+test('Should return object relationships', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
