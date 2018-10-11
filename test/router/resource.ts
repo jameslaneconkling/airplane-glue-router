@@ -100,6 +100,36 @@ test('Should handle both uris that can and can\'t be collapsed to curies', async
 });
 
 
+test('Should handle paths with uris that can be collapsed to curies', async (assert) => {
+  assert.plan(1);
+  const router = await setupTestRouter(testN3);
+
+  const expectedResponse = {
+    resource: {
+      'http://junonetwork.com/test/james': { $type: 'ref', value: ['resource', 'test:james'] },
+      'test:james': {
+        'rdfs:label': {
+          0: { $type: 'atom', value: "James Conkling", $lang: 'en' },
+        }
+      },
+      'test:micah': {
+        'schema:sibling': {
+          0: { $type: 'ref', value: ['resource', 'test:james'] },
+        },
+      },
+    }
+  };
+
+  router.get([
+    ['resource', 'http://junonetwork.com/test/james', 'rdfs:label', 0],
+    ['resource', 'test:micah', 'schema:sibling', 0, 'rdfs:label', 0],
+  ])
+    .subscribe((res) => {
+      assert.deepEqual(res.jsonGraph, expectedResponse);
+    }, assertFailure(assert));
+});
+
+
 test.skip('Should return objects length', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);

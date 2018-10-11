@@ -49,3 +49,28 @@ test('createSentinel', (assert) => {
   assert.deepEqual(createSentinel(context, '"Literal "with \'quotes\'" and @ and ^^"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal "with \'quotes\'" and @ and ^^', language: 'fr-be' });
   // TODO - ensure that literal URIS are handled as literals and not objects
 });
+
+
+/*
+TODO - how to ensure this is idempotent and reversable?
+uri2Curie(uri2Curie(uri)) === uri2Curie(uri)
+curie2URI(uri2Curie(uri)) === uri
+i.e. calling uri2Curie on a curie should return the curie unchanged
+we can't guarantee this for cases where a context namespace is a substring of a context prefix, e.g.
+
+{
+  longPrefix: 'longPrefixNameSpace',
+  shrtPrfx: 'longPrefix',
+}
+
+uri2Curie(context, 'longPrefixNameSpaceABC')
+// "longPrefix:ABC"
+
+uri2Curie(context, uri2Curie(context, 'longPrefixNameSpaceABC'))
+// "shrtPrfx::ABC"
+
+although this is an unlikely edgecase, it makes me think that URIs should follow the ttl pattern: <some:uri> vs some:curie
+*/
+test.skip('uri2Curie', (assert) => {
+  assert.fail();
+});

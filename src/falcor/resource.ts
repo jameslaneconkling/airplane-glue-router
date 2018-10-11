@@ -1,5 +1,5 @@
 import {
-  from,
+  from, merge,
 } from "rxjs";
 import {
   mergeMap,
@@ -11,6 +11,7 @@ import { Route, StandardRange } from "falcor-router";
 import { groupUrisByGraph } from "../utils/adapter";
 import { curie2URI, createSentinel, uri2Curie } from "../utils/rdf";
 import { $error, $ref, $atom } from "../utils/falcor";
+import { partition } from "ramda";
 
 
 export default (context: ContextMap, graphs: GraphDescription[]) => ([
@@ -19,7 +20,31 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
     get([_, subjects, predicates, ranges]) {
       // return { path: ['asdf'] } // TODO - why does this typecheck
 
-      return from(groupUrisByGraph(graphs, subjects)).pipe(
+      /*
+        URIs that can be collapsed to Curies should reference the Curie node,
+        or else graph will be inconsistent when comparing curies and uris.
+        e.g.
+
+        router.get([['resource', 'http://junonetwork.com/test/james', 'rdfs:label', 0]])
+        {
+          resource: {
+            'http://junonetwork.com/test/james': { $type: 'ref', value: ['resource', 'test:james'] },
+            'test:james': {
+              'rdfs:label': {
+                0: { $type: 'atom', value: "James Conkling", $lang: 'en' },
+              }
+            },
+          }
+        }
+      */
+      const [notCollapsibleSubjects, collapsibleSubjects] = partition((uriOrCurie) => uriOrCurie === uri2Curie(context, uriOrCurie), subjects);
+
+      const uri2CuriePathValueRefs$ = from(collapsibleSubjects.map((uri) => ({
+        path: ['resource', uri],
+        value: $ref(['resource', uri2Curie(context, uri)])
+      })));
+
+      const triplePathValues$ = from(groupUrisByGraph(graphs, notCollapsibleSubjects)).pipe(
         mergeMap(({ adapter, key, uris }) => (adapter.triples(
           uris.map((uri) => curie2URI(context, uri)),
           predicates.map((uri) => curie2URI(context, uri)),
@@ -55,8 +80,12 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
             };
           }),
         )),
-        bufferTime(0)
-      )
+      );
+
+      return merge(
+        uri2CuriePathValueRefs$,
+        triplePathValues$
+      ).pipe(bufferTime(0))
     },
   } as Route<[string, string[], string[], StandardRange[]]>,
 ]);
