@@ -18,7 +18,8 @@ TODO
 - how to define an adapter search handler to handle multiple graphs
  */
 export type Adapter = {
-  search(collection: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
+  search(search: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
+  searchCount(search: Search): Observable<{ count: number }>
   triples(subjects: string[], predicates: string[], ranges: StandardRange[]):
     Observable<{ subject: string, predicate: string, index: number, object: AdapterSentinel | string }>
   // one approach to allow add-hoc pathValues: return grouped stream

@@ -105,3 +105,36 @@ test.skip('Should return nulls for non-existant resources', async (assert) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
 });
+
+
+test('Should return search result count', async (assert) => {
+  assert.plan(1);
+  const router = await setupTestRouter(testN3);
+  const collection = stringify({ type: 'schema:Person' });
+
+  const expectedResponse = {
+    graph: {
+      test: {
+        [collection]: {
+          4: { $type: 'ref', value: ['resource', 'test:tim'] },
+          length: 5,
+        }
+      }
+    },
+    resource: {
+      'test:tim': {
+        'rdfs:label': {
+          0: { $type: 'atom', value: 'Tim Conkling', $lang: 'en' }
+        }
+      }
+    }
+  };
+
+  router.get([
+    ['graph', 'test', collection, 'length'],
+    ['graph', 'test', collection, 4, 'rdfs:label', 0]
+  ])
+    .subscribe((res) => {
+      assert.deepEqual(res.jsonGraph, expectedResponse);
+    }, assertFailure(assert));
+});

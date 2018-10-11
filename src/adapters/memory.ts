@@ -3,7 +3,7 @@ import levelgraph from 'levelgraph';
 import levelgraphN3 from 'levelgraph-n3';
 import memdown from 'memdown';
 import { from } from "rxjs";
-import { mergeMap, map } from 'rxjs/operators';
+import { mergeMap, map, count } from 'rxjs/operators';
 import { ContextMap, Adapter } from '../types';
 import { defaultContext } from '../utils/rdf';
 import { range2LimitOffset } from '../utils/falcor';
@@ -29,7 +29,8 @@ const makeMemoryTripleStore = (n3: string) => {
 
 // TODO - should context be exposed to adapters?  Or just assume that the router expands all uris?
 export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Adapter> => {
-  const db = await makeMemoryTripleStore(n3)
+  const db = await makeMemoryTripleStore(n3);
+
   return {
     search({ type }, ranges) {
       return from(ranges).pipe(
@@ -50,6 +51,18 @@ export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Ada
             }))
           );
         })
+      );
+    },
+
+    searchCount(search) {
+      return fromStream(
+        db.getStream({
+          predicate: `${defaultContext.rdf}type`,
+          object: search.type
+        })
+      ).pipe(
+        count(),
+        map((count) => ({ count }))
       );
     },
 
@@ -78,48 +91,6 @@ export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Ada
         }),
       );
     },
-
-    // searchCount(types) {
-    //   return Observable.of(...types)
-    //     .mergeMap((type) => {
-    //       return fromStream(
-    //         db.getStream({
-    //           predicate: `${rdf}type`,
-    //           object: type
-    //         })
-    //       )
-    //         .count()
-    //         .map((length) => ({ type, length }));
-    //     });
-    // },
-
-    // // TODO - should return triple length, preventing need for subsequent call to triplesCount
-    // triples(subjects, predicates, ranges) {
-    //   return from(cartesianProd(subjects, predicates, ranges)).pipe(
-    //     mergeMap(([subject, predicate, range]) => {
-    //       const { offset, limit, levelGraphLimit } = range2LimitOffset(range);
-
-    //       return fromStream(
-    //         db.getStream({
-    //           subject,
-    //           predicate,
-    //           limit: levelGraphLimit,
-    //           offset
-    //         })
-    //       ).pipe(
-    //         takeExactly(limit),
-    //         map(({ object }, idx) => ({
-    //           subject,
-    //           predicate,
-    //           object,
-    //           index: offset + idx,
-    //           type: getType(object),
-    //           lang: getLanguage(object)
-    //         }))
-    //       );
-    //     })
-    //   )
-    // },
 
     // triplesCount(subjects, predicates) {
     //   return Observable.of(...xprod(subjects, predicates))
