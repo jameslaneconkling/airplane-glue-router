@@ -77,7 +77,7 @@ test('Should handle both uris that can and can\'t be collapsed to curies', async
           0: { $type: 'ref', value: ['resource', 'test:micah'] },
         },
         'schema:birthPlace': {
-          0: { $type: 'ref', value: ['resource', 'http://www.wikidata.org/wiki/Q60'] },
+          0: { $type: 'ref', value: ['resource', '<http://www.wikidata.org/wiki/Q60>'] },
         }
       },
       'test:micah': {
@@ -85,7 +85,7 @@ test('Should handle both uris that can and can\'t be collapsed to curies', async
           0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
         }
       },
-      'http://www.wikidata.org/wiki/Q60': {
+      '<http://www.wikidata.org/wiki/Q60>': {
         'rdfs:label': {
           0: { $type: 'atom', value: 'Portland, ME', $lang: 'en' }
         }
@@ -106,7 +106,7 @@ test('Should handle paths with uris that can be collapsed to curies', async (ass
 
   const expectedResponse = {
     resource: {
-      'http://junonetwork.com/test/james': { $type: 'ref', value: ['resource', 'test:james'] },
+      '<http://junonetwork.com/test/james>': { $type: 'ref', value: ['resource', 'test:james'] },
       'test:james': {
         'rdfs:label': {
           0: { $type: 'atom', value: "James Conkling", $lang: 'en' },
@@ -121,7 +121,7 @@ test('Should handle paths with uris that can be collapsed to curies', async (ass
   };
 
   router.get([
-    ['resource', 'http://junonetwork.com/test/james', 'rdfs:label', 0],
+    ['resource', '<http://junonetwork.com/test/james>', 'rdfs:label', 0],
     ['resource', 'test:micah', 'schema:sibling', 0, 'rdfs:label', 0],
   ])
     .subscribe((res) => {

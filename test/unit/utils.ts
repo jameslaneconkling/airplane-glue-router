@@ -1,6 +1,6 @@
 import test from 'tape';
 import { cartesianProd } from '../../src/utils/misc';
-import { isLiteral, createSentinel } from '../../src/utils/rdf';
+import { createObjectSentinel, uri2Curie, curie2URI } from '../../src/utils/rdf';
 
 
 test('cartesian product', (assert) => {
@@ -10,23 +10,7 @@ test('cartesian product', (assert) => {
   assert.deepEqual(cartesianProd(['a', 'b', 'c'], [1, 2], []), []);
 });
 
-test('isLiteral', (assert) => {
-  assert.plan(9);
-  assert.deepEqual(isLiteral('"Literal String"'), true);
-  assert.deepEqual(isLiteral('"Literal String With DataType"^^xsd:string'), true);
-  assert.deepEqual(isLiteral('"Literal String With DataType"^^<http://www.w3.org/2001/XMLSchema#string>'), true);
-  assert.deepEqual(isLiteral('"Literal Langauge String"@en'), true);
-  assert.deepEqual(isLiteral('"Literal Langauge String"@fr-be'), true);
-  // unclear if the spec specifies order when both datatype and language tag are present
-  // https://www.w3.org/TR/rdf11-concepts/#h3_section-Graph-Literal
-  assert.deepEqual(isLiteral('"Literal Language String"@fr-be^^rdf:langString'), true);
-  assert.deepEqual(isLiteral('"Literal Language String"@fr-be^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>'), true);
-  assert.deepEqual(isLiteral('"Literal Language String"^^rdf:langString@fr-be'), true);
-  assert.deepEqual(isLiteral('"Literal Language String"^^<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>@fr-be'), true);
-  // TODO - handle multi-line literals
-});
-
-test('createSentinel', (assert) => {
+test('createObjectSentinel', (assert) => {
   assert.plan(9);
   const context = {
     xsd: 'http://www.w3.org/2001/XMLSchema#',
@@ -38,39 +22,47 @@ test('createSentinel', (assert) => {
     - ensure this follows the RDF spec for literals and URIs
     - rather than create new types Literal, URI, Error, why not just use falcor atom/ref/error sentinels?
   */
-  assert.deepEqual(createSentinel(context, '"Literal"'), { type: 'atom', literal: 'Literal' });
-  assert.deepEqual(createSentinel(context, '"Literal"@en'), { type: 'atom', literal: 'Literal', language: 'en' });
-  assert.deepEqual(createSentinel(context, '"Literal"@fr-be'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
-  assert.deepEqual(createSentinel(context, '"Literal"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
-  assert.deepEqual(createSentinel(context, '"Literal"^^rdf:langString@fr-be'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
-  assert.deepEqual(createSentinel(context, '"1"^^xsd:integer'), { type: 'atom', literal: '1', dataType: 'xsd:integer' });
-  assert.deepEqual(createSentinel(context, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'atom', literal: '1', dataType: 'xsd:integer' });
-  assert.deepEqual(createSentinel({}, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'atom', literal: '1', dataType: 'http://www.w3.org/2001/XMLSchema#integer' });
-  assert.deepEqual(createSentinel(context, '"Literal "with \'quotes\'" and @ and ^^"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal "with \'quotes\'" and @ and ^^', language: 'fr-be' });
+  assert.deepEqual(createObjectSentinel(context, '"Literal"'), { type: 'atom', literal: 'Literal' });
+  assert.deepEqual(createObjectSentinel(context, '"Literal"@en'), { type: 'atom', literal: 'Literal', language: 'en' });
+  assert.deepEqual(createObjectSentinel(context, '"Literal"@fr-be'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
+  assert.deepEqual(createObjectSentinel(context, '"Literal"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
+  assert.deepEqual(createObjectSentinel(context, '"Literal"^^rdf:langString@fr-be'), { type: 'atom', literal: 'Literal', language: 'fr-be' });
+  assert.deepEqual(createObjectSentinel(context, '"1"^^xsd:integer'), { type: 'atom', literal: '1', dataType: 'xsd:integer' });
+  assert.deepEqual(createObjectSentinel(context, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'atom', literal: '1', dataType: 'xsd:integer' });
+  assert.deepEqual(createObjectSentinel({}, '"1"^^<http://www.w3.org/2001/XMLSchema#integer>'), { type: 'atom', literal: '1', dataType: '<http://www.w3.org/2001/XMLSchema#integer>' });
+  assert.deepEqual(createObjectSentinel(context, '"Literal "with \'quotes\'" and @ and ^^"@fr-be^^rdf:langString'), { type: 'atom', literal: 'Literal "with \'quotes\'" and @ and ^^', language: 'fr-be' });
   // TODO - ensure that literal URIS are handled as literals and not objects
+  // TODO - createObjectSentinel w/ null/undefined/curie/uri/error
 });
 
+test('uri2Curie', (assert) => {
+  assert.plan(7);
 
-/*
-TODO - how to ensure this is idempotent and reversable?
-uri2Curie(uri2Curie(uri)) === uri2Curie(uri)
-curie2URI(uri2Curie(uri)) === uri
-i.e. calling uri2Curie on a curie should return the curie unchanged
-we can't guarantee this for cases where a context namespace is a substring of a context prefix, e.g.
+  const context = {
+    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+  };
 
-{
-  longPrefix: 'longPrefixNameSpace',
-  shrtPrfx: 'longPrefix',
-}
+  assert.equal(uri2Curie(context, '<http://www.w3.org/2000/01/rdf-schema#label>'), 'rdfs:label', 'should collapse uri to curie if uri namespace exists in context');
+  assert.equal(uri2Curie(context, '<http://junonetwork.com/test/abc>'), '<http://junonetwork.com/test/abc>', 'should not collapse uri to curie if uri namespace does not exist in context');
+  assert.equal(uri2Curie(context, 'rdfs:label'), 'rdfs:label', 'should not change a non uri');
+  assert.equal(uri2Curie(context, 'abc123XYZ'), 'abc123XYZ', 'should not change a non uri');
+  assert.equal(uri2Curie(context, 'http://www.w3.org/2000/01/rdf-schema#label'), 'http://www.w3.org/2000/01/rdf-schema#label', 'should not change a non uri');
+  assert.equal(uri2Curie(context, uri2Curie(context, '<http://www.w3.org/2000/01/rdf-schema#label>')), uri2Curie(context, '<http://www.w3.org/2000/01/rdf-schema#label>'), 'should be idempotent');
+  assert.equal(curie2URI(context, uri2Curie(context, '<http://www.w3.org/2000/01/rdf-schema#label>')), '<http://www.w3.org/2000/01/rdf-schema#label>', 'should be reversable via curie2Uri');
+});
 
-uri2Curie(context, 'longPrefixNameSpaceABC')
-// "longPrefix:ABC"
+test('curie2URI', (assert) => {
+  assert.plan(7);
 
-uri2Curie(context, uri2Curie(context, 'longPrefixNameSpaceABC'))
-// "shrtPrfx::ABC"
-
-although this is an unlikely edgecase, it makes me think that URIs should follow the ttl pattern: <some:uri> vs some:curie
-*/
-test.skip('uri2Curie', (assert) => {
-  assert.fail();
+  const context = {
+    rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+  };
+  
+  assert.equal(curie2URI(context, 'rdfs:label'), '<http://www.w3.org/2000/01/rdf-schema#label>', 'should expand curie to uri if curie prefix exists in context');
+  assert.equal(curie2URI(context, 'juno:abc'), 'juno:abc', 'should not expand curie to uri if curie prefix does not exist in context');
+  assert.equal(curie2URI(context, '<http://www.w3.org/2000/01/rdf-schema#label>'), '<http://www.w3.org/2000/01/rdf-schema#label>', 'should not expand non-curie');
+  assert.equal(curie2URI(context, 'abc123XYZ'), 'abc123XYZ', 'should not expand non-curie');
+  assert.equal(curie2URI(context, 'junoabc'), 'junoabc', 'should not expand non-curie');
+  assert.equal(curie2URI(context, curie2URI(context, 'rdfs:label')), '<http://www.w3.org/2000/01/rdf-schema#label>', 'should be idempotent');
+  assert.equal(uri2Curie(context, curie2URI(context, 'rdfs:label')), 'rdfs:label', 'should be reversable via uri2Curie');
 });

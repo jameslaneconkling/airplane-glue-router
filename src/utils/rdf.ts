@@ -17,40 +17,46 @@ export const defaultContext: ContextMap = {
 // wd: 'http://www.wikidata.org/',
 
 
-export const isLiteral = (object: string) => /^".*"/.test(object);
+const isNull = (object: any): object is null | undefined => object === null || object === undefined;
 
-export const isNull = (object: any): object is null | undefined => object === null || object === undefined;
+const isLiteral = (object: string) => /^".*"/.test(object);
 
-// TODO - all of these should be their own data types, rather than string munging
-// should the create functions throw errors if they are passed something that doesn't follow the uri/literal pattern?
-export const createReference = (context: ContextMap, uri: string): AdapterRef => {
+const isUri = (object: string) => /^<.*>$/.test(object);
+
+const isCurie = (object: string) => object.indexOf(':') !== -1;
+
+const createUriReference = (context: ContextMap, uri: string): AdapterRef => {
   for (const [prefix, namespace] of toPairs(context)) {
     if (new RegExp(`^${namespace}`).test(uri)) {
-      const suffix = uri.replace(namespace, '');
-      return {
-        type: 'ref',
-        uri: `${prefix}:${suffix}`
-      };
+      return { type: 'ref', uri: `${prefix}:${uri.replace(namespace, '')}` };
     }
   }
 
   return { type: 'ref', uri };
 };
 
+const createCurieReference = (curie: string): AdapterRef => ({
+  type: 'ref',
+  uri: curie
+});
+
+const createError = (object: string): AdapterError => ({
+  type: 'error',
+  value: {
+    code: '500',
+    message: `Adapter triples handler returned unhandleable object type: ${JSON.stringify(object)}`
+  }
+});
+
 const STRING_DATA_TYPES = new Set([
-  'xsd:string', 'http://www.w3.org/2001/XMLSchema#string', 'rdf:langString', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', ''
+  'xsd:string', '<http://www.w3.org/2001/XMLSchema#string>', 'rdf:langString', '<http://www.w3.org/1999/02/22-rdf-syntax-ns#langString>', ''
 ]);
 
-export const createAtom = (context: ContextMap, literal: string | null | undefined): AdapterAtom | AdapterError => {
-  if (literal === null || literal === undefined) {
-    return { type: 'atom', literal: null };
-  }
-
+const createAtom = (context: ContextMap, literal: string): AdapterAtom | AdapterError => {
   const matched = literal.match(/".*"/g);
 
   if (!matched) {
-    // TODO - better error code + message
-    return { type: 'error', value: { code: '500', message: `Adapter triples handler returned unhandleable object type: ${JSON.stringify(literal)}` } };
+    return createError(literal);
   }
 
   const atom: AdapterAtom = {
@@ -63,7 +69,7 @@ export const createAtom = (context: ContextMap, literal: string | null | undefin
     const dataType = literal.replace(/^".*".*\^\^/g, '').replace(/@.*$/, '');
 
     if (!STRING_DATA_TYPES.has(dataType)) {
-      atom.dataType = uri2Curie(context, dataType.replace(/^</, '').replace(/>$/, ''));
+      atom.dataType = uri2Curie(context, dataType);
     }
   }
 
@@ -74,18 +80,34 @@ export const createAtom = (context: ContextMap, literal: string | null | undefin
   return atom;
 };
 
-export const createSentinel = (context: ContextMap, object: string | null | undefined): AdapterSentinel => (
-  isNull(object) || isLiteral(object) ?
-    createAtom(context, object) :
-    createReference(context, object)
-);
+/*
+this only operates over the objects received from the adapter
+a more flexible abstraction would cover: uris/curies from graph, uris from adapter, literals from graph/adapter
+*/
+export const createObjectSentinel = (context: ContextMap, object: string | null | undefined): AdapterSentinel => {
+  if (isNull(object)) {
+    return { type: 'atom', literal: null };
+  } else if (isLiteral(object)) {
+    return createAtom(context, object);
+  } else if (isUri(object)) {
+    return createUriReference(context, object);
+  } else if (isCurie(object)) {
+    return createCurieReference(object);
+  }
+
+  return createError(object);
+};
 
 export const uri2Curie = (context: ContextMap, uri: string) => {
+  if (!isUri(uri)) {
+    return uri;
+  }
+  
   const contextList = toPairs(context);
 
   for (const [prefix, uriNameSpace] of contextList) {
-    if (new RegExp(`^${uriNameSpace}`).test(uri)) {
-      return `${prefix}:${uri.replace(uriNameSpace, '')}`;
+    if (new RegExp(`^<${uriNameSpace}`).test(uri)) {
+      return `${prefix}:${uri.replace(`<${uriNameSpace}`, '').replace('>', '')}`;
     }
   }
 
@@ -101,8 +123,15 @@ export const curie2URI = (context: ContextMap, curie: string) => {
 
   const [prefix, reference] = [curie.slice(0, idx), curie.slice(idx+1)];
   if (context[prefix]) {
-    return context[prefix] + reference;
+    return `<${context[prefix] + reference}>`;
   }
 
   return curie;
 };
+
+
+export const internalizeUri = (context: ContextMap, uriOrLiteral: string) => isLiteral(uriOrLiteral) ? uriOrLiteral : uri2Curie(context, `<${uriOrLiteral}>`);
+
+export const externalizeUri = (context: ContextMap, uriOrLiteral: string) => isLiteral(uriOrLiteral) ?
+  uriOrLiteral :
+  curie2URI(context, uriOrLiteral).replace(/^</, '').replace(/>$/, '');

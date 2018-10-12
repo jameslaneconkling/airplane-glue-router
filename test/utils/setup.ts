@@ -121,7 +121,7 @@ export const setupTestRouter = async (n3) => {
     graphs: [{
       key: 'test',
       label: 'Test',
-      domains: [/^test/, /^schema/, /^http:\/\/www\.wikidata\.org\/wiki/],
+      domains: [/^test/, /^schema/, /^<http:\/\/www\.wikidata\.org\/wiki/],
       adapter: await memoryAdapter({ n3 }),
     }]
   });
