@@ -53,7 +53,7 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
           map(({ subject, predicate, index, object }) => {
             const predicateCurie = uri2Curie(context, predicate);
 
-            if (typeof object === 'string') {
+            if (typeof object === 'string' || object === null || object === undefined) {
               object = createSentinel(context, object);
             }
 

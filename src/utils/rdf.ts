@@ -19,6 +19,8 @@ export const defaultContext: ContextMap = {
 
 export const isLiteral = (object: string) => /^".*"/.test(object);
 
+export const isNull = (object: any): object is null | undefined => object === null || object === undefined;
+
 // TODO - all of these should be their own data types, rather than string munging
 // should the create functions throw errors if they are passed something that doesn't follow the uri/literal pattern?
 export const createReference = (context: ContextMap, uri: string): AdapterRef => {
@@ -39,7 +41,11 @@ const STRING_DATA_TYPES = new Set([
   'xsd:string', 'http://www.w3.org/2001/XMLSchema#string', 'rdf:langString', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#langString', ''
 ]);
 
-export const createAtom = (context: ContextMap, literal: string): AdapterAtom | AdapterError => {
+export const createAtom = (context: ContextMap, literal: string | null | undefined): AdapterAtom | AdapterError => {
+  if (literal === null || literal === undefined) {
+    return { type: 'atom', literal: null };
+  }
+
   const matched = literal.match(/".*"/g);
 
   if (!matched) {
@@ -68,9 +74,11 @@ export const createAtom = (context: ContextMap, literal: string): AdapterAtom | 
   return atom;
 };
 
-export const createSentinel = (context: ContextMap, object: string): AdapterSentinel => isLiteral(object) ?
-  createAtom(context, object) :
-  createReference(context, object);
+export const createSentinel = (context: ContextMap, object: string | null | undefined): AdapterSentinel => (
+  isNull(object) || isLiteral(object) ?
+    createAtom(context, object) :
+    createReference(context, object)
+);
 
 export const uri2Curie = (context: ContextMap, uri: string) => {
   const contextList = toPairs(context);

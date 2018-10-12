@@ -21,7 +21,7 @@ export type Adapter = {
   search(search: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
   searchCount(search: Search): Observable<{ count: number }>
   triples(subjects: string[], predicates: string[], ranges: StandardRange[]):
-    Observable<{ subject: string, predicate: string, index: number, object: AdapterSentinel | string }>
+    Observable<{ subject: string, predicate: string, index: number, object: AdapterSentinel | string | null | undefined }>
   // one approach to allow add-hoc pathValues: return grouped stream
   // search(collection: Search, ranges: StandardRange[]): Observable<[
   //   Observable<{ index: number, uri: string }>,
