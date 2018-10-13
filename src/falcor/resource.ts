@@ -9,7 +9,7 @@ import {
 import { ContextMap, GraphDescription } from "../types";
 import { Route, StandardRange } from "falcor-router";
 import { groupUrisByGraph } from "../utils/adapter";
-import { createObjectSentinel, uri2Curie, externalizeUri, internalizeUri } from "../utils/rdf";
+import { uri2Curie, URI, OBJECT } from "../utils/rdf";
 import { $error, $ref, $atom } from "../utils/falcor";
 import { partition } from "ramda";
 
@@ -46,36 +46,34 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
 
       const triplePathValues$ = from(groupUrisByGraph(graphs, notCollapsibleSubjects)).pipe(
         mergeMap(({ adapter, key, uris }) => (adapter.triples(
-          uris.map((uri) => externalizeUri(context, uri)),
-          predicates.map((uri) => externalizeUri(context, uri)),
+          uris.map((subject) => URI.falcor2Adapter(context, subject)),
+          predicates.map((predicate) => URI.falcor2Adapter(context, predicate)),
           ranges
         )).pipe(
           map(({ subject, predicate, index, object }) => {
-            const subjectCurie = internalizeUri(context, subject);
-            const predicateCurie = internalizeUri(context, predicate);
+            const subjectCurie = URI.adapter2Falcor(context, subject);
+            const predicateCurie = URI.adapter2Falcor(context, predicate);
 
-            if (object === null || object === undefined) {
-              object = createObjectSentinel(context, object);
-            } else if (typeof object === 'string') {
-              object = createObjectSentinel(context, internalizeUri(context, object));
-            } else if (object.type === 'ref') {
-              object.uri = internalizeUri(context, object.uri);
+            if (object === null || object === undefined || typeof object === 'string') {
+              object = OBJECT.adapter2Falcor(context, object);
+            } else if (object.$type === 'ref') {
+              object.value = URI.adapter2Falcor(context, object.value);
             }
 
-            if (object.type === 'ref') {
+            if (object.$type === 'ref') {
               return {
                 path: ['resource', subjectCurie, predicateCurie, index],
-                value: $ref(['resource', object.uri])
+                value: $ref(['resource', object.value])
               };
-            } else if (object.type === 'error') {
+            } else if (object.$type === 'atom') {
+              return {
+                path: ['resource', subjectCurie, predicateCurie, index],
+                value: $atom(object.value, object.dataType, object.language)
+              };
+            } else if (object.$type === 'error') {
               return {
                 path: ['resource', subjectCurie, predicateCurie, index],
                 value: $error('500', object.value)
-              };
-            } if (object.type === 'atom') {
-              return {
-                path: ['resource', subjectCurie, predicateCurie, index],
-                value: $atom(object.literal, object.dataType, object.language)
               };
             }
 

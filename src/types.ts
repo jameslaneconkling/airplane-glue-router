@@ -30,9 +30,9 @@ export type Adapter = {
 }
 
 
-export type AdapterAtom = { type: 'atom', literal: Primitive, dataType?: string, language?: string }
-export type AdapterError = { type: 'error', value: any }
-export type AdapterRef = { type: 'ref', uri: string }
+export type AdapterAtom = { $type: 'atom', value: Primitive, dataType?: string, language?: string }
+export type AdapterError = { $type: 'error', value: any }
+export type AdapterRef = { $type: 'ref', value: string }
 export type AdapterSentinel = AdapterAtom | AdapterError | AdapterRef
 
 

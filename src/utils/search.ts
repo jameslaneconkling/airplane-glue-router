@@ -1,6 +1,6 @@
 import { parse } from "query-string";
 import { Search, ContextMap } from "../types";
-import { externalizeUri } from "./rdf";
+import { URI } from "./rdf";
 
 // TODO - use more robust validation library, like io-ts
 export const parseSearch = (context: ContextMap, searchString: string): Search | null => {
@@ -11,7 +11,7 @@ export const parseSearch = (context: ContextMap, searchString: string): Search |
   }
 
   return {
-    type: externalizeUri(context, parsed.type)
+    type: URI.falcor2Adapter(context, parsed.type),
   };
 };
 

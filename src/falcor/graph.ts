@@ -16,7 +16,7 @@ import {
 import { ContextMap, GraphDescription } from "../types";
 import { Route, PathValue, StandardRange } from "falcor-router";
 import { matchKey } from "../utils/adapter";
-import { internalizeUri } from "../utils/rdf";
+import { URI } from "../utils/rdf";
 import { parseSearch } from "../utils/search";
 
 
@@ -52,7 +52,7 @@ export default (context: ContextMap, graphs: GraphDescription[]) => ([
               path: ['graph', graphKey, searchQueryString, index],
               // NOTE - an alternate graph topology could match resources to their graph via a named graph, rather than a regex against the resource URI
               // a resource's graph would be defined by the search route, not by its URI
-              value: $ref(['resource', internalizeUri(context, uri)])
+              value: $ref(['resource', URI.adapter2Falcor(context, uri)])
             })),
           );
         }),
