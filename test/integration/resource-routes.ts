@@ -1,5 +1,10 @@
 import test from 'tape';
 import { setupTestRouter, testN3, assertFailure } from '../utils/setup';
+const C = {
+  rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+  schema: 'http://schema.org/',
+  test: 'http://junonetwork.com/test/',
+};
 
 
 test('Should return object literals', async (assert) => {
@@ -8,14 +13,14 @@ test('Should return object literals', async (assert) => {
 
   const expectedResponse = {
     resource: {
-      'test:james': {
-        'schema:alternateName': {
+      [`${C.test}james`]: {
+        [`${C.schema}alternateName`]: {
           0: { $type: 'atom', value: 'JLC', $lang: 'en' },
           1: { $type: 'atom', value: 'Jamie', $lang: 'en' }
         }
       },
-      'test:micah': {
-        'schema:alternateName': {
+      [`${C.test}micah`]: {
+        [`${C.schema}alternateName`]: {
           0: { $type: 'atom', value: 'Mitzan', $lang: 'en' },
           1: { $type: 'atom' } // TODO
         }
@@ -23,7 +28,7 @@ test('Should return object literals', async (assert) => {
     }
   };
 
-  router.get([['resource', ['test:james', 'test:micah'], 'schema:alternateName', { to: 1 }]])
+  router.get([['resource', [`${C.test}james`, `${C.test}micah`], `${C.schema}alternateName`, { to: 1 }]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
@@ -36,124 +41,63 @@ test('Should return object relationships', async (assert) => {
 
   const expectedResponse = {
     resource: {
-      'test:james': {
-        'schema:sibling': {
-          0: { $type: 'ref', value: ['resource', 'test:micah'] },
-          1: { $type: 'ref', value: ['resource', 'test:parker'] },
+      [`${C.test}james`]: {
+        [`${C.schema}sibling`]: {
+          0: { $type: 'ref', value: ['resource', `${C.test}micah`] },
+          1: { $type: 'ref', value: ['resource', `${C.test}parker`] },
         },
-        'schema:alternateName': {
+        [`${C.schema}alternateName`]: {
           0: { $type: 'atom', value: 'JLC', $lang: 'en' },
           1: { $type: 'atom', value: 'Jamie', $lang: 'en' },
         }
       },
-      'test:micah': {
-        'rdfs:label': {
+      [`${C.test}micah`]: {
+        [`${C.rdfs}label`]: {
           0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
         }
       },
-      'test:parker': {
-        'rdfs:label': {
+      [`${C.test}parker`]: {
+        [`${C.rdfs}label`]: {
           0: { $type: 'atom', value: 'Parker Taylor', $lang: 'en' }
         }
       }
     }
   };
 
-  router.get([['resource', 'test:james', ['schema:sibling', 'schema:alternateName'], { to: 1 }, 'rdfs:label', 0]])
+  router.get([['resource', `${C.test}james`, [`${C.schema}sibling`, `${C.schema}alternateName`], { to: 1 }, `${C.rdfs}label`, 0]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
 });
 
 
-test('Should handle both uris that can and can\'t be collapsed to curies', async (assert) => {
+test('Should return triple count', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
   const expectedResponse = {
     resource: {
-      'test:james': {
-        'schema:sibling': {
-          0: { $type: 'ref', value: ['resource', 'test:micah'] },
+      [`${C.test}james`]: {
+        [`${C.schema}sibling`]: {
+          0: { $type: 'ref', value: ['resource', `${C.test}micah`] },
+          length: { $type: 'atom', value: 4 }
         },
-        'schema:birthPlace': {
-          0: { $type: 'ref', value: ['resource', '<http://www.wikidata.org/wiki/Q60>'] },
+        [`${C.schema}alternateName`]: {
+          0: { $type: 'atom', value: 'JLC', $lang: 'en' },
+          length: { $type: 'atom', value: 4 }
         }
       },
-      'test:micah': {
-        'rdfs:label': {
+      [`${C.test}micah`]: {
+        [`${C.rdfs}label`]: {
           0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
         }
-      },
-      '<http://www.wikidata.org/wiki/Q60>': {
-        'rdfs:label': {
-          0: { $type: 'atom', value: 'Portland, ME', $lang: 'en' }
-        }
-      }
-    }
-  };
-
-  router.get([['resource', 'test:james', ['schema:birthPlace', 'schema:sibling'], 0, 'rdfs:label', 0]])
-    .subscribe((res) => {
-      assert.deepEqual(res.jsonGraph, expectedResponse);
-    }, assertFailure(assert));
-});
-
-
-test('Should handle paths with uris that can be collapsed to curies', async (assert) => {
-  assert.plan(1);
-  const router = await setupTestRouter(testN3);
-
-  const expectedResponse = {
-    resource: {
-      '<http://junonetwork.com/test/james>': { $type: 'ref', value: ['resource', 'test:james'] },
-      'test:james': {
-        'rdfs:label': {
-          0: { $type: 'atom', value: "James Conkling", $lang: 'en' },
-        }
-      },
-      'test:micah': {
-        'schema:sibling': {
-          0: { $type: 'ref', value: ['resource', 'test:james'] },
-        },
-      },
-    }
-  };
-
-  router.get([
-    ['resource', '<http://junonetwork.com/test/james>', 'rdfs:label', 0],
-    ['resource', 'test:micah', 'schema:sibling', 0, 'rdfs:label', 0],
-  ])
-    .subscribe((res) => {
-      assert.deepEqual(res.jsonGraph, expectedResponse);
-    }, assertFailure(assert));
-});
-
-
-test.skip('Should return objects length', async (assert) => {
-  assert.plan(1);
-  const router = await setupTestRouter(testN3);
-
-  const expectedResponse = {
-    resource: {
-      'test:james': {
-        'schema:sibling': {
-          0: {
-            'rdfs:label': { 0: 'Micah Conkling' }
-          },
-          length: 4
-        },
-        'schema:alternateName': {
-          0: 'JLC',
-          length: 4
-        }
       }
     }
   };
 
   router.get([
-    ['resource', 'test:james', 'schema:sibling', [{ to: 1 }, 'length'], 'rdfs:label', 0],
-    ['resource', 'test:james', 'schema:alternateName', [{ to: 1 }, 'length']]
+    ['resource', `${C.test}james`, `${C.schema}sibling`, [0, 'length'], `${C.rdfs}label`, 0],
+    ['resource', `${C.test}james`, `${C.schema}alternateName`, [0, 'length']]
   ])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
@@ -175,7 +119,7 @@ test.skip('Should return 404 for resources that don\'t match a graph', async (as
     }
   };
 
-  router.get([['resource', uri, 'rdfs:label', 0]])
+  router.get([['resource', uri, `${C.rdfs}label`, 0]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
@@ -192,7 +136,7 @@ test.skip('Should return null for resources that don\'t exist', async (assert) =
     }
   };
 
-  router.get([['resource', 'test:abc', 'rdfs:label', 0]])
+  router.get([['resource', 'test:abc', `${C.rdfs}label`, 0]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
@@ -205,8 +149,8 @@ test.skip('Should return null for values that don\'t exist', async (assert) => {
 
   const expectedResponse = {
     resource: {
-      'test:james': {
-        'rdfs:label': {
+      [`${C.test}james`]: {
+        [`${C.rdfs}label`]: {
           10: null,
           11: null,
         }
@@ -214,11 +158,12 @@ test.skip('Should return null for values that don\'t exist', async (assert) => {
     }
   };
 
-  router.get([['resource', 'test:james', 'rdfs:label', [10, 11]]])
+  router.get([['resource', `${C.test}james`, `${C.rdfs}label`, [10, 11]]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
 });
+
 
 test.skip('Should return null for predicates that don\'t exist', async (assert) => {
   assert.plan(1);
@@ -226,13 +171,13 @@ test.skip('Should return null for predicates that don\'t exist', async (assert) 
 
   const expectedResponse = {
     resource: {
-      'test:james': {
+      [`${C.test}james`]: {
         'nonexistant': null
       }
     }
   };
 
-  router.get([['resource', 'test:james', 'nonexistant', { to: 1 }]])
+  router.get([['resource', `${C.test}james`, 'nonexistant', { to: 1 }]])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));

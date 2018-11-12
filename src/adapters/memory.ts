@@ -5,10 +5,11 @@ import memdown from 'memdown';
 import { from } from "rxjs";
 import { mergeMap, map, count } from 'rxjs/operators';
 import { ContextMap, Adapter } from '../types';
-import { defaultContext } from '../utils/rdf';
+import { context } from '../utils/rdf';
 import { range2LimitOffset } from '../utils/falcor';
 import { fromStream } from '../utils/rxjs';
 import { cartesianProd } from '../utils/misc';
+import { xprod } from 'ramda';
 
 
 // TODO - update levelup and add types
@@ -39,7 +40,7 @@ export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Ada
 
           return fromStream<{ subject: string }>(
             db.getStream({
-              predicate: `${defaultContext.rdf}type`,
+              predicate: `${context.rdf}type`,
               object: type,
               limit: levelGraphLimit,
               offset,
@@ -57,7 +58,7 @@ export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Ada
     searchCount(search) {
       return fromStream(
         db.getStream({
-          predicate: `${defaultContext.rdf}type`,
+          predicate: `${context.rdf}type`,
           object: search.type
         })
       ).pipe(
@@ -92,23 +93,25 @@ export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Ada
       );
     },
 
-    // triplesCount(subjects, predicates) {
-    //   return Observable.of(...xprod(subjects, predicates))
-    //     .mergeMap(([subject, predicate]) => {
-    //       return fromStream(
-    //         db.getStream({
-    //           subject,
-    //           predicate,
-    //         })
-    //       )
-    //         .count()
-    //         .map(length => ({
-    //           subject: subject,
-    //           predicate: predicate,
-    //           length
-    //         }));
-    //     });
-    // },
+    tripleCount(subjects, predicates) {
+      return from(xprod(subjects, predicates)).pipe(
+        mergeMap(([subject, predicate]) => {
+          return fromStream(
+            db.getStream({
+              subject,
+              predicate,
+            })
+          ).pipe(
+            count(),
+            map((count) => ({
+              subject: subject,
+              predicate: predicate,
+              count
+            }))
+          );
+        })
+      );
+    },
 
     // getTypes() {
     //   return fromStream(

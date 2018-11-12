@@ -15,14 +15,15 @@ export const pad = <T>(n: number, project: (index: number) => T) => <R>(source$:
   )
 );
 
-export const mapMissing = <T, R, A>(expected: Set<R>, id: (item: T) => R, project: (item: R) => A) => (source$: Observable<T>) => merge(
+// TODO - would be a lot easier to handle this natively in Router
+export const mapMissing = <T, R, A>(expected: R[], id: (item: T) => R, project: (item: R) => A) => (source$: Observable<T>) => merge(
   source$,
   source$.pipe(
     reduce<T, Set<R>>((acc, item) => {
       acc.delete(id(item));
       return acc;
-    }, expected),
-    mergeMap((missing) => from(Array.from(missing.values()).map(project)))
+    }, new Set(expected)),
+    mergeMap((missing) => Array.from(missing.values()).map(project))
   )
 );
 

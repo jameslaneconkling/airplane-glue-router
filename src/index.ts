@@ -3,20 +3,13 @@ import express from 'express';
 import morgan from 'morgan';
 import { dataSourceRoute } from 'falcor-express';
 import createRouter from './falcor';
-import { GraphDescription, ContextMap } from './types';
+import { GraphDescription } from './types';
 import memoryAdapter from './adapters/memory';
 
 
 const PORT = process.env.PORT || 3000;
 
 const SEED = process.env.SEED || `${__dirname}/../seed.n3`;
-
-// create context
-let context: ContextMap | undefined;;
-if (process.env.CONTEXT) {
-  // TODO - validate
-  context = JSON.parse(readFileSync(process.env.CONTEXT, 'utf8'));
-}
 
 
 // create graphs
@@ -41,9 +34,9 @@ skos:prefLabel a rdf:Property ;
 
 // TODO - should domains need to take curies?
 Promise.all([
-  memoryAdapter({ n3: readFileSync(SEED, 'utf8'), context }),
-  memoryAdapter({ n3: rdf, context }),
-  memoryAdapter({ n3: skos, context })
+  memoryAdapter({ n3: readFileSync(SEED, 'utf8') }),
+  memoryAdapter({ n3: rdf }),
+  memoryAdapter({ n3: skos })
 ]).then(([trumpWorldAdapter, rdfAdapter, skosAdapter]) => {
   const graphs: GraphDescription[] = [{
     key: 'trump-world',
@@ -67,7 +60,7 @@ Promise.all([
     app.use(morgan('combined'));
   }
 
-  const Router = createRouter({ context, graphs });
+  const Router = createRouter({ graphs });
   app.use('/api/model.json', dataSourceRoute(() => new Router({ user: 'test-user' }))); // TODO - adapters should be initialized w/ each request
 
   const router = new Router({ user: 'test-user' });

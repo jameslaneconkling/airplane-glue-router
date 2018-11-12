@@ -117,11 +117,10 @@ export const testN3 = `
 
 export const setupTestRouter = async (n3) => {
   const Router = createRouter({
-    context,
     graphs: [{
       key: 'test',
       label: 'Test',
-      domains: [/^test/, /^schema/, /^<http:\/\/www\.wikidata\.org\/wiki/],
+      domains: [/^http:\/\/junonetwork\.com\/test/, /^http:\/\/schema\.org/, /^http:\/\/www\.wikidata\.org\/wiki/],
       adapter: await memoryAdapter({ n3 }),
     }]
   });

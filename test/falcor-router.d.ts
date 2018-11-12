@@ -1,68 +1,76 @@
-// TODO - contribute pull request to https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/falcor-router/index.d.ts
-// Type definitions for falcor-router 0.4.0
-// Project: https://github.com/Netflix/falcor-router
-// Definitions by: Quramy <https://github.com/Quramy>, cdhgee <https://github.com/cdhgee>
-// Definitions: https://github.com/borisyankov/DefinitelyTyped
-/// <reference types="falcor" />
-
 declare module 'falcor-router' {
-    import { DataSource } from 'falcor';
-    import {
-        PathSet,
-        PathValue,
-        InvalidPath,
-        JSONGraph,
-        JSONEnvelope,
-        JSONGraphEnvelope
-    } from 'falcor-json-graph';
-    import { Observable } from 'rxjs';
+  import { DataSource } from 'falcor';
+  import {
+    PathSet,
+    InvalidPath,
+    JSONGraph,
+    JSONEnvelope,
+    JSONGraphEnvelope,
+    Path
+  } from 'falcor-json-graph';
+  import { Observable } from 'rxjs';
 
-    class FalcorRouter extends DataSource {
+  export type RouterOptions = {
+    debug?: boolean;
+    maxPaths?: number;
+    maxRefFollow?: number;
+  }
 
-        constructor(routes: Array<FalcorRouter.Route>, options?: FalcorRouter.RouterOptions);
+  export default class AbstractRouter extends DataSource {
+
+    constructor(routes: Array<Route>, options?: RouterOptions);
     
-        /**
-         * When a route misses on a call, get, or set the unhandledDataSource will
-         * have a chance to fulfill that request.
-         **/
-        routeUnhandledPathsTo(dataSource: DataSource): void;
+    /**
+     * When a route misses on a call, get, or set the unhandledDataSource will
+     * have a chance to fulfill that request.
+     **/
+    public routeUnhandledPathsTo(dataSource: DataSource): void;
     
-        static createClass(routes?: Array<FalcorRouter.Route>): typeof FalcorRouter.CreatedRouter;
-    }
-    
-    namespace FalcorRouter {
-    
-        class CreatedRouter extends FalcorRouter {
-            constructor(options?: RouterOptions);
-        }
-    
-        interface AbstractRoute {
-            route: string;
-        }
-    
-        interface CallRoute<P extends PathSet = PathSet> extends AbstractRoute {
-            call(callPath: P, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>;
-        }
-    
-        interface GetRoute<P extends PathSet = PathSet> extends AbstractRoute {
-            // get(pathset: PathSet): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
-            get(pathset: P): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
-        }
-    
-        interface SetRoute extends AbstractRoute {
-            set(jsonGraph: JSONGraph): RouteResult | Promise<RouteResult> | Observable<RouteResult>;
-        }
-    
-        type Route<P extends PathSet = PathSet> = GetRoute<P> | SetRoute | CallRoute<P>;
-        type RouteResult = PathValue | Array<PathValue> | JSONEnvelope<any>;
-        type CallRouteResult = PathValue | InvalidPath | Array<PathValue | InvalidPath> | JSONGraphEnvelope;
-    
-        interface RouterOptions {
-            debug?: boolean;
-            maxPaths?: number;
-            maxRefFollow?: number;
-        }
-    }
-    
-    export = FalcorRouter;
+    // static createClass(routes?: Array<Route>): typeof Router;
+    static createClass(routes: Route[]): typeof Router
+  }
+
+  export class Router extends AbstractRouter {
+    constructor(options?: RouterOptions);
+  }
+
+  export type AbstractRoute = {
+    route: string;
+  }
+
+  export type CallRouteResult = PathValue | InvalidPath | Array<PathValue | InvalidPath> | JSONGraphEnvelope;
+
+  export type CallRoute<P extends PathSet = PathSet> = AbstractRoute & {
+    call(callPath: P, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>;
+  }
+
+  export type GetRoute<P extends PathSet = PathSet> = AbstractRoute & {
+    get(pathset: P): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>;
+  }
+
+  export type SetRoute = AbstractRoute & {
+    set(jsonGraph: JSONGraph): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>;
+  }
+
+  export type Route<P extends PathSet = PathSet> = GetRoute<P> | SetRoute | CallRoute<P>;
+
+  export type Primitive = string | boolean | number | null;
+
+  export type Atom = { $type: 'atom', value: Primitive, $lang?: string, $dataType?: string }
+
+  export type Ref = { $type: 'ref', value: Path }
+
+  export type ErrorSentinel = { $type: 'error', value: { code: string, message: string } }
+
+  export type Sentinel = Atom | Ref | ErrorSentinel
+
+  export type PathValue = {
+    path: string | PathSet
+    value: Sentinel | Primitive
+  }
+
+  export type StandardRange = {
+    from: number
+    to: number
+  }
 }
