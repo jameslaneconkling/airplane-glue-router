@@ -1,31 +1,11 @@
-import { Observable, range, Observer, concat, merge, from } from "rxjs";
-import { count, map, mergeMap, reduce } from "rxjs/operators";
+import { Observable } from "rxjs";
+import { reduce } from "rxjs/operators";
 
-// export const takeExactly = (count: number) => <T>(source$: Observable<T>) => concat(
-//   source$,
-//   range(0, count)
-// ).pipe(take(count));
-
-export const pad = <T>(n: number, project: (index: number) => T) => <R>(source$: Observable<R>) => merge(
-  source$,
-  source$.pipe(
-    count(),
-    mergeMap((sourceLength) => range(sourceLength, n - sourceLength)),
-    map(project),
-  )
-);
-
-// TODO - would be a lot easier to handle this natively in Router
-export const mapMissing = <T, R, A>(expected: R[], id: (item: T) => R, project: (item: R) => A) => (source$: Observable<T>) => merge(
-  source$,
-  source$.pipe(
-    reduce<T, Set<R>>((acc, item) => {
-      acc.delete(id(item));
-      return acc;
-    }, new Set(expected)),
-    mergeMap((missing) => Array.from(missing.values()).map(project))
-  )
-);
+// given a list of values, returns an operator that emits a set of all values not included in the observable it operates on
+export const difference = <T, R>(from: R[], id: (item: T) => R) => reduce<T, Set<R>>((acc, item) => {
+  acc.delete(id(item));
+  return acc;
+}, new Set(from));
 
 
 // from Reactive-Extensions (rx v4) rx-node.fromStream()

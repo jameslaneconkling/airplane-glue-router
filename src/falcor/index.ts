@@ -1,26 +1,31 @@
-import Router from 'falcor-router';
+import Router, { Route } from 'falcor-router';
 import graphRoutes from './graph';
 import resourceRoutes from './resource';
-import { GraphDescription } from '../types';
+import { UninitializedGraphDescription, InitializedGraphDescription, IJunoRouter, RouterMeta } from '../types';
+import { PathSet } from 'falcor-json-graph';
 
 
-type RouterMeta = { [key: string]: any };
 
 
 // TODO - split project into router + implementation.  this function becomes the default export
-export default (
-  { graphs }: { graphs: GraphDescription[] }
-) => {
-  const TopLevelRouter = Router.createClass([
-    ...graphRoutes(graphs),
-    ...resourceRoutes(graphs)
+export default () => {
+  const TopLevelRouter = Router.createClass<Route<PathSet, IJunoRouter>>([
+    ...graphRoutes,
+    ...resourceRoutes,
   ]);
 
-  return class JunoRouter extends TopLevelRouter {
+  return class JunoGraphRouter extends TopLevelRouter implements IJunoRouter {
     public meta: RouterMeta
-    constructor(meta: RouterMeta = {}) {
+    
+    public graphs: InitializedGraphDescription[]
+
+    constructor(graphs: UninitializedGraphDescription[], meta: RouterMeta = {}) {
       super();
       this.meta = meta;
+      this.graphs = graphs.map(({ adapter, ...rest }) => ({
+        adapter: adapter(),
+        ...rest
+      }));
     }
   }
 };

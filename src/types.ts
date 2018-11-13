@@ -10,28 +10,29 @@ export type Search = {
   type: string
 }
 
-/*
-TODO
-- what should adapter handlers return?
-  - pathValues would allow them to pre-emptively return more, e.g. type and label
-  - but they presume a path, which an adapter might not need to know about
-- how to define an adapter search handler to handle multiple graphs
- */
-export type Adapter = {
-  search(search: Search, ranges: StandardRange[]): Observable<{ uri: string, index: number }>
-  // one approach to allow add-hoc pathValues: return grouped stream
-  // search(collection: Search, ranges: StandardRange[]): Observable<[
-  //   Observable<{ index: number, uri: string }>,
-  //   Observable<PathValue>
-  // ]>
-  searchCount(search: Search): Observable<{ count: number }>
-  // TODO - rename triple/subject/predicate/object to something RDF-agnostic
-  //        statement/resource/field|property/value
-  triples(subjects: string[], predicates: string[], ranges: StandardRange[]):
-    Observable<{ subject: string, predicate: string, index: number, object: AdapterSentinel | string | null | undefined }>
-  tripleCount(subjects: string[], predicates: string[]):
-    Observable<{ subject: string, predicate: string, count: number }>
+export type SearchResponse = { uri: string, index: number };
+export type SearchCountResponse = { count: number };
+export type TripleResponse = { subject: string, predicate: string, index: number, object: AdapterSentinel | string | null | undefined };
+export type TripleCountResponse = { subject: string, predicate: string, count: number };
+
+export type RouterMeta = { [key: string]: any };
+export type IJunoRouter = {
+  meta: RouterMeta
+  graphs: InitializedGraphDescription[]
+};
+
+
+export type InitializedAdapter = {
+  search(search: Search, ranges: StandardRange[]): Observable<SearchResponse>
+  // search(search: Search, ranges: StandardRange[]): Observable<SearchResponse | TripleResponse> // TODO - allow for optimistic response: needs test coverage
+  searchCount(search: Search): Observable<SearchCountResponse>
+  searchWithCount?(search: Search, ranges: StandardRange[]): Observable<SearchResponse | TripleResponse | SearchCountResponse>
+  triples(subjects: string[], predicates: string[], ranges: StandardRange[]): Observable<TripleResponse>
+  triplesCount(subjects: string[], predicates: string[]): Observable<TripleCountResponse>
+  triplesWithCount?(subjects: string[], predicates: string[]): Observable<TripleResponse | SearchCountResponse>
 }
+
+export type Adapter = () => InitializedAdapter;
 
 
 export type AdapterAtom = { $type: 'atom', value: Primitive, dataType?: string, language?: string }
@@ -43,6 +44,13 @@ export type AdapterSentinel = AdapterAtom | AdapterError | AdapterRef
 export type GraphDescription = {
   key: string,
   domains: RegExp[],
-  adapter: Adapter,
   label?: string,
+}
+
+export type UninitializedGraphDescription = GraphDescription & {
+  adapter: Adapter,
+}
+
+export type InitializedGraphDescription = GraphDescription & {
+  adapter: InitializedAdapter,
 }

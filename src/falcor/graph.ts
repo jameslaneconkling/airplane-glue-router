@@ -1,6 +1,7 @@
 import {
   of,
   from,
+  merge,
 } from "rxjs";
 import {
   mergeMap,
@@ -8,18 +9,19 @@ import {
   bufferTime,
 } from 'rxjs/operators';
 import {
-  xprod,
+  xprod, prop,
 } from 'ramda';
 import {
-  $ref, $error,
+  $ref, $error, ranges2List,
 } from '../utils/falcor';
-import { GraphDescription } from "../types";
+import { IJunoRouter } from "../types";
 import { Route, PathValue, StandardRange } from "falcor-router";
 import { matchKey } from "../utils/adapter";
 import { parseSearch } from "../utils/search";
+import { difference } from "../utils/rxjs";
 
 
-export default (graphs: GraphDescription[]) => ([
+const graphRoutes = [
   {
     route: 'graph[{keys:graphKeys}][{keys:searches}][{ranges:ranges}]',
     get([_, graphKeys, searches, ranges]) {
@@ -27,7 +29,7 @@ export default (graphs: GraphDescription[]) => ([
       return from(xprod(graphKeys, searches)).pipe(
         mergeMap<[string, string], PathValue>(([graphKey, searchQueryString]) => {
           // TODO - allow multiple graphKeys to be included in the same query
-          const graphDescription = matchKey(graphs, graphKey);
+          const graphDescription = matchKey(this.graphs, graphKey);
           if (!graphDescription) {
             return of({
               path: ['graph', graphKey],
@@ -45,27 +47,39 @@ export default (graphs: GraphDescription[]) => ([
           }
 
           // TODO - can from standardize across: R[], Promise<R[]>, Observable<R>\
-          return from(graphDescription.adapter.search(search, ranges)).pipe(
-            // TODO - handle search result nulls (if falcor doesn't already them?)
-            map(({ index, uri }) => ({
-              path: ['graph', graphKey, searchQueryString, index],
-              // NOTE - an alternate graph topology could match resources to their graph via a named graph, rather than a regex against the resource URI
-              // a resource's graph would be defined by the search route, not by its URI
-              value: $ref(['resource', uri])
-            })),
+          const search$ = from(graphDescription.adapter.search(search, ranges));
+          return merge(
+            search$.pipe(
+              map(({ index, uri }) => {
+                // TODO - handle multiple response types (search count, optimistic resource results)
+                return {
+                  path: ['graph', graphKey, searchQueryString, index],
+                  // NOTE - an alternate graph topology could match resources to their graph via a named graph, rather than a regex against the resource URI
+                  // a resource's graph would be defined by the search route, not by its URI
+                  value: $ref(['resource', uri])
+                }
+              }),
+            ),
+            search$.pipe(
+              difference(ranges2List(ranges), prop('index')),
+              mergeMap((missingIndices) => from(Array.from(missingIndices).map((index) => ({
+                path: ['graph', graphKey, searchQueryString, index],
+                value: null
+              }))))
+            )
           );
         }),
         bufferTime(0)
       );
     },
-  } as Route<[string, string[], string[], StandardRange[]]>,
+  } as Route<[string, string[], string[], StandardRange[]], IJunoRouter>,
   {
     route: 'graph[{keys:graphKeys}][{keys:searches}].length',
     get([_, graphKeys, searches]) {
       return from(xprod(graphKeys, searches)).pipe(
         mergeMap(([graphKey, searchQueryString]) => {
           // TODO - allow multiple graphKeys to be included in the same query
-          const graphDescription = matchKey(graphs, graphKey);
+          const graphDescription = matchKey(this.graphs, graphKey);
           if (!graphDescription) {
             return of({
               path: ['graph', graphKey],
@@ -91,5 +105,8 @@ export default (graphs: GraphDescription[]) => ([
         })
       );
     }
-  } as Route<[string, string[], string[]]>
-]);
+  } as Route<[string, string[], string[]], IJunoRouter>
+];
+
+
+export default graphRoutes;

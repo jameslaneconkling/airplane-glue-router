@@ -8,7 +8,7 @@ const C = {
 };
 
 
-test('Should return search result resources', async (assert) => {
+test('[Graph Routes] Should return search result resources', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
   const collection = stringify({ type: `${C.schema}Person` });
@@ -43,7 +43,7 @@ test('Should return search result resources', async (assert) => {
 });
 
 
-test('Should return 404 for non-existant graph', async (assert) => {
+test('[Graph Routes] Should return 404 for non-existant graph', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
@@ -63,7 +63,7 @@ test('Should return 404 for non-existant graph', async (assert) => {
 });
 
 
-test('Should return 422 for bad search', async (assert) => {
+test('[Graph Routes] Should return 422 for bad search', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
   const collection = `QWERTY`;
@@ -86,22 +86,27 @@ test('Should return 422 for bad search', async (assert) => {
 });
 
 
-test.skip('Should return nulls for non-existant resources', async (assert) => {
+test('Should return nulls for non-existant resources', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
   const collection = stringify({ type: `${C.schema}Person` });
 
   const expectedResponse = {
     graph: {
-      [collection]: {
-        4: {
-          [`${C.rdfs}label`]: {
-            0: 'James Conkling'
-          }
-        },
-        5: null,
-        6: null,
+      test: {
+        [collection]: {
+          4: { $type: 'ref', value: ['resource', `${C.test}tim`] },
+          5: null,
+          6: null,
+        }
       }
+    },
+    resource: {
+      [`${C.test}tim`]: {
+        [`${C.rdfs}label`]: {
+          0: { $type: 'atom', value: 'Tim Conkling', $lang: 'en' }
+        }
+      },
     }
   };
 
@@ -112,7 +117,7 @@ test.skip('Should return nulls for non-existant resources', async (assert) => {
 });
 
 
-test('Should return search result count', async (assert) => {
+test('[Graph Routes] Should return search result count', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
   const collection = stringify({ type: `${C.schema}Person` });

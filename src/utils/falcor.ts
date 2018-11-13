@@ -1,14 +1,27 @@
 import {
-  range,
+  range, unnest, xprod,
 } from 'ramda';
 import { Path } from 'falcor';
 import { StandardRange, Atom, Ref, ErrorSentinel } from 'falcor-router';
+import { cartesianProd } from './misc';
 
 
 /**
  * Convert falcor range to an array of equivalent indices
  */
-export const range2List = ({ from, to }: StandardRange) => range(from, to + 1);
+export const range2List = ({ from, to }: StandardRange): number[] => range(from, to + 1);
+
+export const ranges2List = (ranges: StandardRange[]): number[] => unnest(ranges.map(range2List));
+
+export const expandTriples = (
+  subjects: string[], predicates: string[], ranges: StandardRange[]
+): Array<{ subject: string, predicate: string, index: number }> => {
+  return xprod(subjects, predicates)
+    .reduce<Array<{ subject: string, predicate: string, index: number }>>((acc, [subject, predicate]) => {
+      ranges2List(ranges).forEach((index) => acc.push({ subject, predicate, index }));
+      return acc;
+    }, []);
+};
 
 /**
  * Convert falcor range to SQL OFFSET and LIMIT values

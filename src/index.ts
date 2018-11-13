@@ -3,7 +3,7 @@ import express from 'express';
 import morgan from 'morgan';
 import { dataSourceRoute } from 'falcor-express';
 import createRouter from './falcor';
-import { GraphDescription } from './types';
+import { UninitializedGraphDescription } from './types';
 import memoryAdapter from './adapters/memory';
 
 
@@ -38,7 +38,7 @@ Promise.all([
   memoryAdapter({ n3: rdf }),
   memoryAdapter({ n3: skos })
 ]).then(([trumpWorldAdapter, rdfAdapter, skosAdapter]) => {
-  const graphs: GraphDescription[] = [{
+  const graphs: UninitializedGraphDescription[] = [{
     key: 'trump-world',
     label: 'Trump World',
     domains: [/^http:\/\/juno\.network\/trumpworld/],
@@ -60,10 +60,10 @@ Promise.all([
     app.use(morgan('combined'));
   }
 
-  const Router = createRouter({ graphs });
-  app.use('/api/model.json', dataSourceRoute(() => new Router({ user: 'test-user' }))); // TODO - adapters should be initialized w/ each request
+  const JunoGraphRouter = createRouter();
+  app.use('/api/model.json', dataSourceRoute(() => new JunoGraphRouter(graphs, { user: 'test-user' })));
 
-  const router = new Router({ user: 'test-user' });
+  const router = new JunoGraphRouter(graphs, { user: 'test-user' });
 
   router.get([['graph', 'trump-world', 'type=ABC', 10, 'rdf:label', 0]])
     .subscribe((res) => console.log(JSON.stringify(res)), (err) => console.error(err));
@@ -79,7 +79,7 @@ Promise.all([
   // });
 
 
-  // app.listen(PORT, () => {
-  //   console.log(`listening on port ${PORT}`);
-  // });
+  app.listen(PORT, () => {
+    console.log(`listening on port ${PORT}`);
+  });
 });

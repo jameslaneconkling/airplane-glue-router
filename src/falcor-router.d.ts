@@ -27,32 +27,31 @@ declare module 'falcor-router' {
     public routeUnhandledPathsTo(dataSource: DataSource): void;
     
     // static createClass(routes?: Array<Route>): typeof Router;
-    static createClass(routes: Route[]): typeof Router
+    static createClass<T = Route>(routes: T[]): typeof Router
   }
 
   export class Router extends AbstractRouter {
     constructor(options?: RouterOptions);
   }
 
-  export type AbstractRoute = {
-    route: string;
+  export type GetRoute<P extends PathSet = PathSet, C = Router> = {
+    route: string
+    get(this: C, pathset: P): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>
+  }
+
+  export type SetRoute<C = Router> = {
+    route: string
+    set(this: C, jsonGraph: JSONGraph): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>
+  }
+
+  export type CallRoute<P extends PathSet = PathSet, C = Router> = {
+    route: string
+    call(this: C, callPath: P, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>
   }
 
   export type CallRouteResult = PathValue | InvalidPath | Array<PathValue | InvalidPath> | JSONGraphEnvelope;
 
-  export type CallRoute<P extends PathSet = PathSet> = AbstractRoute & {
-    call(callPath: P, args: Array<any>): CallRouteResult | Promise<CallRouteResult> | Observable<CallRouteResult>;
-  }
-
-  export type GetRoute<P extends PathSet = PathSet> = AbstractRoute & {
-    get(pathset: P): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>;
-  }
-
-  export type SetRoute = AbstractRoute & {
-    set(jsonGraph: JSONGraph): PathValue | PathValue[] | Promise<PathValue | PathValue[]> | Observable<PathValue | PathValue[]>;
-  }
-
-  export type Route<P extends PathSet = PathSet> = GetRoute<P> | SetRoute | CallRoute<P>;
+  export type Route<P extends PathSet = PathSet, C = Router> = GetRoute<P, C> | SetRoute<C> | CallRoute<P, C>;
 
   export type Primitive = string | boolean | number | null;
 

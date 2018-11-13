@@ -7,7 +7,7 @@ const C = {
 };
 
 
-test('Should return object literals', async (assert) => {
+test('[Resource Routes] Should return object literals', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
@@ -35,7 +35,7 @@ test('Should return object literals', async (assert) => {
 });
 
 
-test('Should return object relationships', async (assert) => {
+test('[Resource Routes] Should return object relationships', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
@@ -71,7 +71,12 @@ test('Should return object relationships', async (assert) => {
 });
 
 
-test('Should return triple count', async (assert) => {
+test.skip('[Resource Routes] Should short circuit paths that terminate early', async (assert) => {
+
+});
+
+
+test('[Resource Routes] Should return triple count', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
@@ -105,7 +110,7 @@ test('Should return triple count', async (assert) => {
 });
 
 
-test.skip('Should return 404 for resources that don\'t match a graph', async (assert) => {
+test.skip('[Resource Routes] Should return 404 for resources that don\'t match a graph', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
   const uri = 'http://bad-domain.com/resource/123';
@@ -126,7 +131,7 @@ test.skip('Should return 404 for resources that don\'t match a graph', async (as
 });
 
 
-test.skip('Should return null for resources that don\'t exist', async (assert) => {
+test.skip('[Resource Routes] Should return null for resources that don\'t exist', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
@@ -143,22 +148,39 @@ test.skip('Should return null for resources that don\'t exist', async (assert) =
 });
 
 
-test.skip('Should return null for values that don\'t exist', async (assert) => {
+test.skip('[Resource Routes] Should return nulls for non-existant object values', async (assert) => {
   assert.plan(1);
   const router = await setupTestRouter(testN3);
 
   const expectedResponse = {
     resource: {
       [`${C.test}james`]: {
+        [`${C.schema}sibling`]: {
+          3: { $type: 'ref', value: ['resource', `${C.test}micah`] },
+          4: null,
+        },
+        [`${C.schema}alternateName`]: {
+          3: { $type: 'atom', value: 'JLC', $lang: 'en' },
+          4: null,
+        }
+      },
+      [`${C.test}micah`]: {
         [`${C.rdfs}label`]: {
-          10: null,
-          11: null,
+          0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
+        }
+      },
+      [`${C.test}parker`]: {
+        [`${C.rdfs}label`]: {
+          0: { $type: 'atom', value: 'Parker Taylor', $lang: 'en' }
         }
       }
     }
   };
 
-  router.get([['resource', `${C.test}james`, `${C.rdfs}label`, [10, 11]]])
+  router.get([
+    ['resource', `${C.test}james`, `${C.schema}alternateName`, { from: 3, to: 4 }],
+    ['resource', `${C.test}james`, `${C.schema}sibling`, { from: 3, to: 4 }, `${C.rdfs}label`, 0]
+  ])
     .subscribe((res) => {
       assert.deepEqual(res.jsonGraph, expectedResponse);
     }, assertFailure(assert));
