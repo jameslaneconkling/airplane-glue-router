@@ -1,11 +1,15 @@
 import { Observable } from "rxjs";
 import { reduce } from "rxjs/operators";
 
+
 // given a list of values, returns an operator that emits a set of all values not included in the observable it operates on
 export const difference = <T, R>(from: R[], id: (item: T) => R) => reduce<T, Set<R>>((acc, item) => {
   acc.delete(id(item));
   return acc;
 }, new Set(from));
+
+
+export const collect = <T>() => reduce<T, T[]>((acc, item) => (acc.push(item), acc), []);
 
 
 // from Reactive-Extensions (rx v4) rx-node.fromStream()

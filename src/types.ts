@@ -15,9 +15,8 @@ export type SearchCountResponse = { count: number };
 export type TripleResponse = { subject: string, predicate: string, index: number, object: AdapterSentinel | string | null | undefined };
 export type TripleCountResponse = { subject: string, predicate: string, count: number };
 
-export type RouterMeta = { [key: string]: any };
+export type RequestMetadata = { [key: string]: any };
 export type IJunoRouter = {
-  meta: RouterMeta
   graphs: InitializedGraphDescription[]
 };
 
@@ -26,13 +25,13 @@ export type InitializedAdapter = {
   search(search: Search, ranges: StandardRange[]): Observable<SearchResponse>
   // search(search: Search, ranges: StandardRange[]): Observable<SearchResponse | TripleResponse> // TODO - allow for optimistic response: needs test coverage
   searchCount(search: Search): Observable<SearchCountResponse>
-  searchWithCount?(search: Search, ranges: StandardRange[]): Observable<SearchResponse | TripleResponse | SearchCountResponse>
+  // searchWithCount?(search: Search, ranges: StandardRange[]): Observable<SearchResponse | TripleResponse | SearchCountResponse>
   triples(subjects: string[], predicates: string[], ranges: StandardRange[]): Observable<TripleResponse>
   triplesCount(subjects: string[], predicates: string[]): Observable<TripleCountResponse>
-  triplesWithCount?(subjects: string[], predicates: string[]): Observable<TripleResponse | SearchCountResponse>
+  // triplesWithCount?(subjects: string[], predicates: string[]): Observable<TripleResponse | SearchCountResponse>
 }
 
-export type Adapter = () => InitializedAdapter;
+export type Adapter = (requestMeta: RequestMetadata) => InitializedAdapter;
 
 
 export type AdapterAtom = { $type: 'atom', value: Primitive, dataType?: string, language?: string }

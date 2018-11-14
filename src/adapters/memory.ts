@@ -2,8 +2,8 @@ import levelup from 'levelup';
 import levelgraph from 'levelgraph';
 import levelgraphN3 from 'levelgraph-n3';
 import memdown from 'memdown';
-import { from } from "rxjs";
-import { mergeMap, map, count } from 'rxjs/operators';
+import { from, Subject, of } from "rxjs";
+import { mergeMap, map, count, multicast, refCount } from 'rxjs/operators';
 import { ContextMap, Adapter } from '../types';
 import { context } from '../utils/rdf';
 import { range2LimitOffset } from '../utils/falcor';
@@ -29,13 +29,15 @@ const makeMemoryTripleStore = (n3: string) => {
 };
 
 
-// TODO - would a class be easier for users to implement than a closure?
+// TODO - would a class interface be easier for users to implement than a closure?
 export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Adapter> => {
   // initialize store
   const db = await makeMemoryTripleStore(n3);
 
-  return () => {
+  return (request) => {
     // initialize batching
+    // const searchQuery = createBatchedRequest((searches: Search[]) => {});
+
     return {
       search({ type }, ranges) {
         return from(ranges).pipe(
@@ -89,7 +91,7 @@ export default async ({ n3 }: { n3: string, context?: ContextMap }): Promise<Ada
               map(({ object }, index) => ({
                 subject,
                 predicate,
-                index,
+                index: offset + index,
                 object,
               }))
             );

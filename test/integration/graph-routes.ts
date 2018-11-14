@@ -86,15 +86,31 @@ test('[Graph Routes] Should return 422 for bad search', async (assert) => {
 });
 
 
-test('Should return nulls for non-existant resources', async (assert) => {
-  assert.plan(1);
+test('[Graph Routes] Should return nulls for non-existant resources', async (assert) => {
+  assert.plan(2);
   const router = await setupTestRouter(testN3);
-  const collection = stringify({ type: `${C.schema}Person` });
 
-  const expectedResponse = {
+  const collection1 = stringify({ type: `${C.schema}Dog` });
+  const expectedResponse1 = {
     graph: {
       test: {
-        [collection]: {
+        [collection1]: {
+          0: null
+        }
+      }
+    }
+  };
+
+  router.get([['graph', 'test', collection1, 0, `${C.rdfs}label`, 0]])
+    .subscribe((res) => {
+      assert.deepEqual(res.jsonGraph, expectedResponse1, 'returns nulls when search is empty');
+    }, assertFailure(assert));
+
+  const collection2 = stringify({ type: `${C.schema}Person` });
+  const expectedResponse2 = {
+    graph: {
+      test: {
+        [collection2]: {
           4: { $type: 'ref', value: ['resource', `${C.test}tim`] },
           5: null,
           6: null,
@@ -110,9 +126,9 @@ test('Should return nulls for non-existant resources', async (assert) => {
     }
   };
 
-  router.get([['graph', 'test', collection, { from: 4, to: 6 }, `${C.rdfs}label`, 0]])
+  router.get([['graph', 'test', collection2, { from: 4, to: 6 }, `${C.rdfs}label`, 0]])
     .subscribe((res) => {
-      assert.deepEqual(res.jsonGraph, expectedResponse);
+      assert.deepEqual(res.jsonGraph, expectedResponse2, 'returns nulls when requesting more results than contained by successful search');
     }, assertFailure(assert));
 });
 

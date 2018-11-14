@@ -7,18 +7,18 @@ import {
   mergeMap,
   map,
   bufferTime,
+  reduce,
 } from 'rxjs/operators';
 import {
-  xprod, prop,
+  xprod,
 } from 'ramda';
 import {
   $ref, $error, ranges2List,
 } from '../utils/falcor';
-import { IJunoRouter } from "../types";
+import { IJunoRouter, SearchResponse } from "../types";
 import { Route, PathValue, StandardRange } from "falcor-router";
 import { matchKey } from "../utils/adapter";
 import { parseSearch } from "../utils/search";
-import { difference } from "../utils/rxjs";
 
 
 const graphRoutes = [
@@ -61,11 +61,16 @@ const graphRoutes = [
               }),
             ),
             search$.pipe(
-              difference(ranges2List(ranges), prop('index')),
-              mergeMap((missingIndices) => from(Array.from(missingIndices).map((index) => ({
-                path: ['graph', graphKey, searchQueryString, index],
-                value: null
-              }))))
+              reduce<SearchResponse, Set<number>>((acc, item) => {
+                acc.delete(item.index);
+                return acc;
+              }, new Set(ranges2List(ranges))),
+              mergeMap((missingIndices) => {
+                return from(Array.from(missingIndices).map((index) => ({
+                  path: ['graph', graphKey, searchQueryString, index],
+                  value: null
+                })))
+              })
             )
           );
         }),

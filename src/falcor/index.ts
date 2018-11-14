@@ -1,7 +1,7 @@
 import Router, { Route } from 'falcor-router';
 import graphRoutes from './graph';
 import resourceRoutes from './resource';
-import { UninitializedGraphDescription, InitializedGraphDescription, IJunoRouter, RouterMeta } from '../types';
+import { UninitializedGraphDescription, InitializedGraphDescription, IJunoRouter, RequestMetadata } from '../types';
 import { PathSet } from 'falcor-json-graph';
 
 
@@ -15,15 +15,12 @@ export default () => {
   ]);
 
   return class JunoGraphRouter extends TopLevelRouter implements IJunoRouter {
-    public meta: RouterMeta
-    
     public graphs: InitializedGraphDescription[]
 
-    constructor(graphs: UninitializedGraphDescription[], meta: RouterMeta = {}) {
+    constructor(graphs: UninitializedGraphDescription[], request: RequestMetadata = {}) {
       super();
-      this.meta = meta;
       this.graphs = graphs.map(({ adapter, ...rest }) => ({
-        adapter: adapter(),
+        adapter: adapter(request),
         ...rest
       }));
     }

@@ -12,9 +12,8 @@ import { IJunoRouter, TripleResponse } from "../types";
 import { Route, StandardRange } from "falcor-router";
 import { groupUrisByGraph } from "../utils/adapter";
 import { parseObject } from "../utils/rdf";
-import { $error, $ref, $atom, ranges2List, expandTriples } from "../utils/falcor";
-import { difference } from "../utils/rxjs";
-import { prop, equals } from "ramda";
+import { $error, $ref, $atom, expandTriples } from "../utils/falcor";
+import { equals, reject } from "ramda";
 
 
 const resourceRoutes = [
@@ -57,12 +56,16 @@ const resourceRoutes = [
             ),
             triples$.pipe(
               reduce<TripleResponse, Array<{ subject: string, predicate: string, index: number }>>((acc, { subject, predicate, index }) => {
-                return acc.filter(equals({ subject, predicate, index }));
+                const x = reject(equals({ subject, predicate, index}), acc);
+                return x;
               }, expandTriples(subjects, predicates, ranges)),
-              mergeMap((missingTriples) => from(Array.from(missingTriples).map(({ subject, predicate, index }) => ({
-                path: ['resource', subject, predicate, index],
-                value: null
-              }))))
+              mergeMap((missingTriples) => {
+                const x = from(missingTriples.map(({ subject, predicate, index }) => ({
+                  path: ['resource', subject, predicate, index],
+                  value: null
+                })))
+                return x;
+              })
             )
           );
         }),

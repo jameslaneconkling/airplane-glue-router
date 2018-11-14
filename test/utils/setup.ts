@@ -25,7 +25,7 @@ export const testN3 = `
     schema:alternateName "JLC"@en ;
     schema:alternateName "Jamie"@en ;
     schema:alternateName "Jimmie"@en ;
-    schema:alternateName "Santiago"@en ;
+    schema:alternateName "Santiago"@es ;
     schema:birthDate "1988-05-02"^^xsd:date ;
     schema:birthPlace <http://www.wikidata.org/wiki/Q60> ;
     schema:gender "Male"@en ;
@@ -116,16 +116,14 @@ export const testN3 = `
 `;
 
 export const setupTestRouter = async (n3) => {
-  const Router = createRouter({
-    graphs: [{
-      key: 'test',
-      label: 'Test',
-      domains: [/^http:\/\/junonetwork\.com\/test/, /^http:\/\/schema\.org/, /^http:\/\/www\.wikidata\.org\/wiki/],
-      adapter: await memoryAdapter({ n3 }),
-    }]
-  });
+  const JunoGraphRouter = createRouter();
 
-  return new Router();
+  return new JunoGraphRouter([{
+    key: 'test',
+    label: 'Test',
+    domains: [/^http:\/\/junonetwork\.com\/test/, /^http:\/\/schema\.org/, /^http:\/\/www\.wikidata\.org\/wiki/],
+    adapter: await memoryAdapter({ n3 }),
+  }]);
 };
 
 export const assertFailure = assert => err => {
