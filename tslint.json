@@ -9,7 +9,7 @@
     "member-ordering": false,
     "no-console": false,
     "no-shadowed-variable": false,
-    "max-classes-per-file": false,
+    "max-classes-per-file": false
   },
   "rulesDirectory": []
 }

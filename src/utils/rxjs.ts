@@ -18,6 +18,7 @@ export const fromStream = <T>(stream: NodeJS.ReadableStream): Observable<T> => {
   stream.pause();
 
   return new Observable((observer) => {
+    // console.log('db');
     const dataHandler = (data) => observer.next(data);
     const errorHandler = (err) => observer.error(err);
     const endHandler = () => observer.complete();

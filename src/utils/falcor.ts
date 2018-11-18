@@ -3,7 +3,6 @@ import {
 } from 'ramda';
 import { Path } from 'falcor';
 import { StandardRange, Atom, Ref, ErrorSentinel } from 'falcor-router';
-import { cartesianProd } from './misc';
 
 
 /**

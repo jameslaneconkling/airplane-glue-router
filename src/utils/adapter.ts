@@ -1,22 +1,31 @@
-import { InitializedGraphDescription, InitializedAdapter } from "../types";
+import { GraphDescription, AdapterResponse, AdapterRequest, AdapterTripleCountResponse, AdapterSearchResponse, AdapterSearchCountResponse, AdapterTripleResponse } from "../types";
 import { any, values } from "ramda";
-import { Subject, of } from "rxjs";
-import { multicast, refCount } from "rxjs/operators";
+import { Observable } from "rxjs";
+import { StandardRange } from "falcor-router";
+import { ranges2List } from "./falcor";
+import { stringify } from "query-string";
+import { cartesianProd } from "./misc";
 
 
-export const matchKey = (graphs: InitializedGraphDescription[], adapterKey: string) => (
+export const matchKey = (graphs: GraphDescription[], adapterKey: string) => (
   graphs.find((adapter) => adapterKey === adapter.key)
 );
 
-export const matchDomain = (graphs: InitializedGraphDescription[], domainName: string) => (
+export const matchDomain = (graphs: GraphDescription[], domainName: string) => (
   graphs.find(({ domains }) => any((domain) => domain.test(domainName), domains))
 );
 
 export const missingGraph = Symbol('missing_graph');
 
 
-export const groupUrisByGraph = (graphs: InitializedGraphDescription[], subjects: string[]) => {
-  return values(subjects.reduce<{ [key: string]: { adapter: InitializedAdapter, subjects: string[], key: string } }>((grouped, uri) => {
+export const groupUrisByGraph = (graphs: GraphDescription[], subjects: string[]) => {
+  return values(subjects.reduce<{
+    [key: string]: {
+      handler: (request: AdapterRequest) => Observable<AdapterResponse>,
+      subjects: string[],
+      key: string
+    }
+  }>((grouped, uri) => {
     const graphDescription = matchDomain(graphs, uri);
     if (graphDescription === undefined) {
       // TODO - handle unmatched resources?
@@ -27,7 +36,7 @@ export const groupUrisByGraph = (graphs: InitializedGraphDescription[], subjects
       grouped[graphDescription.key].subjects.push(uri);
     } else {
       grouped[graphDescription.key] = {
-        adapter: graphDescription.adapter,
+        handler: graphDescription.handler,
         key: graphDescription.key,
         subjects: [uri]
       };
@@ -37,40 +46,43 @@ export const groupUrisByGraph = (graphs: InitializedGraphDescription[], subjects
   }, {}));
 };
 
-/**
- * use cases:
- * - for each search, merge search w/ searchCount
- * - for each subject/predicate triple pattern, merge w/ triplesCount
- * - merge multiple triple patterns
- * 
- * TODO -
- * - can this be used in the router, rather than the adapter?  i.e. if adapter implements search/searchCount/searchWithCount
- * - create separate graph-routes-batched.ts/resource-routes-batched.ts test suites
- */
-export const createBatchedRequest = <T, R>(
-  handler: (args: T[]) => R,
-  { interval = 0 }: Partial<{ interval: number }> = {},
-) => {
-  let batch;
-  let count = 0;
 
-  const subject = new Subject<R>();
-  const source$ = of().pipe(multicast(subject), refCount());
+export const isExpectedSearchCountResponse = (searchKey: string) => (
+  response: AdapterResponse
+): response is AdapterSearchCountResponse => response.type === 'search-count' && response.key === searchKey;
+export const isExpectedTripleCountResponse = (subjects: Set<string>, predicates: Set<string>) => (
+  response: AdapterResponse
+): response is AdapterTripleCountResponse => response.type === 'triple-count' && subjects.has(response.subject) && predicates.has(response.predicate);
 
-  return (arg: T) => {
-    const idx = count++;
-    if (batch === undefined) {
-      batch.args = [arg];
-      batch.handler = setTimeout(() => {
-        subject.next(handler(batch.args)[idx]);
-        batch = undefined;
-        count = 0;
-        subject.complete();
-      }, interval);
-    } else {
-      batch.args.push(arg);
-    }
 
-    return source$;
+export const expectedSearchResponses = (key: string, ranges: StandardRange[]) => {
+  const expectedResponses = new Map<string, AdapterSearchResponse>();
+  ranges2List(ranges).forEach((index) => {
+    const response: AdapterSearchResponse = ({ type: 'search', key, index, uri: null });
+    expectedResponses.set(stringify(response), response);
+  });
+
+  return {
+    isExpectedSearchResponse: (response): response is AdapterSearchResponse => (
+      response.type === 'search' &&
+      expectedResponses.delete(stringify({ type: 'search', key: response.key, index: response.index, uri: null }))
+    ),
+    getMissingSearchResponses: () => expectedResponses,
+  };
+};
+
+export const expectedTripleResponses = (subjects: string[], predicates: string[], ranges: StandardRange[]) => {
+  const expectedResponses = new Map<string, AdapterTripleResponse>();
+  cartesianProd(subjects, predicates, ranges2List(ranges)).forEach(([subject, predicate, index]) => {
+    const response: AdapterTripleResponse = ({ type: 'triple', subject, predicate, index, object: null });
+    expectedResponses.set(stringify(response), response);
+  });
+
+  return {
+    isExpectedTripleResponse: (response): response is AdapterTripleResponse => (
+      response.type === 'triple' &&
+      expectedResponses.delete(stringify({ type: 'triple', subject: response.subject, predicate: response.predicate, index: response.index, object: null }))
+    ),
+    getMissingTripleResponses: () => expectedResponses,
   };
 };

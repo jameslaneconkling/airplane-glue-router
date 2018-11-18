@@ -1,5 +1,5 @@
-import createRouter from '../../src/falcor/index';
-import memoryAdapter from '../../src/adapters/memory';
+import createRouter, { createGraph, createHandlerAdapter } from '../../src/falcor/index';
+import MemoryGraphAdapter from '../../src/adapters/memory';
 
 
 export const context = {
@@ -115,18 +115,59 @@ export const testN3 = `
     rdfs:label "sibling" .
 `;
 
+export const schemaN3 = `
+  @prefix rdf: <${context.rdf}> .
+  @prefix rdfs: <${context.rdfs}> .
+  @prefix skos: <${context.skos}> .
+  @prefix schema: <${context.schema}> .
+
+  schema:alternateName
+    schema:domainIncludes schema:Thing ;
+    schema:rangeIncludes schema:Text ;
+    skos:prefLabel "Alternative Name"@en ;
+    a rdf:Property ;
+    rdfs:comment "An alias for the item." ;
+    rdfs:label "alternateName" .
+    
+
+  schema:birthDate
+    schema:domainIncludes schema:Person ;
+    schema:rangeIncludes schema:Date ;
+    a rdf:Property ;
+    rdfs:comment "Date of birth." ;
+    rdfs:label "birthDate" .
+
+  schema:birthPlace
+    a rdf:Property ;
+    rdfs:label "birthPlace" .
+
+  schema:gender
+    a rdf:Property ;
+    rdfs:label "gender" .
+
+  schema:sibling
+    schema:domainIncludes schema:Person ;
+    schema:rangeIncludes schema:Person ;
+    a rdf:Property ;
+    rdfs:comment "A sibling of this person." ;
+    rdfs:label "sibling" .
+`;
+
 export const setupTestRouter = async (n3) => {
   const JunoGraphRouter = createRouter();
 
-  return new JunoGraphRouter([{
-    key: 'test',
-    label: 'Test',
-    domains: [/^http:\/\/junonetwork\.com\/test/, /^http:\/\/schema\.org/, /^http:\/\/www\.wikidata\.org\/wiki/],
-    adapter: await memoryAdapter({ n3 }),
-  }]);
+  return new JunoGraphRouter([
+    createGraph(
+      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createStore(n3), { user: 'test-user' })),
+      {
+        key: 'test',
+        label: 'Test',
+        domains: [/^http:\/\/junonetwork\.com\/test/, /^http:\/\/schema\.org/, /^http:\/\/www\.wikidata\.org\/wiki/],
+      }
+    ),
+  ]);
 };
 
 export const assertFailure = assert => err => {
   assert.fail(JSON.stringify(err));
-  assert.end();
 };

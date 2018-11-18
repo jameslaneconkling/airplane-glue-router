@@ -2,9 +2,8 @@ import { readFileSync } from 'fs';
 import express from 'express';
 import morgan from 'morgan';
 import { dataSourceRoute } from 'falcor-express';
-import createRouter from './falcor';
-import { UninitializedGraphDescription } from './types';
-import memoryAdapter from './adapters/memory';
+import createRouter, { createGraph, createHandlerAdapter } from './falcor';
+import MemoryGraphAdapter from './adapters/memory';
 
 
 const PORT = process.env.PORT || 3000;
@@ -12,7 +11,6 @@ const PORT = process.env.PORT || 3000;
 const SEED = process.env.SEED || `${__dirname}/../seed.n3`;
 
 
-// create graphs
 const rdf = `
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -32,41 +30,46 @@ skos:prefLabel a rdf:Property ;
 `;
 
 
-// TODO - should domains need to take curies?
+const app = express();
+
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('combined'));
+}
+
+const JunoGraphRouter = createRouter();
+
+
 Promise.all([
-  memoryAdapter({ n3: readFileSync(SEED, 'utf8') }),
-  memoryAdapter({ n3: rdf }),
-  memoryAdapter({ n3: skos })
-]).then(([trumpWorldAdapter, rdfAdapter, skosAdapter]) => {
-  const graphs: UninitializedGraphDescription[] = [{
-    key: 'trump-world',
-    label: 'Trump World',
-    domains: [/^http:\/\/juno\.network\/trumpworld/],
-    adapter: trumpWorldAdapter,
-  }, {
-    key: 'rdf',
-    domains: [/^rdf:/],
-    adapter: rdfAdapter,
-  }, {
-    key: 'skos',
-    domains: [/^skos:/],
-    adapter: skosAdapter,
-  }];
-
-  // Create App
-  const app = express();
-
-  if (process.env.NODE_ENV !== 'test') {
-    app.use(morgan('combined'));
-  }
-
-  const JunoGraphRouter = createRouter();
-  app.use('/api/model.json', dataSourceRoute(() => new JunoGraphRouter(graphs, { user: 'test-user' })));
-
-  const router = new JunoGraphRouter(graphs, { user: 'test-user' });
-
-  router.get([['graph', 'trump-world', 'type=ABC', 10, 'rdf:label', 0]])
-    .subscribe((res) => console.log(JSON.stringify(res)), (err) => console.error(err));
+  MemoryGraphAdapter.createStore(readFileSync(SEED, 'utf8')),
+  MemoryGraphAdapter.createStore(rdf),
+  MemoryGraphAdapter.createStore(skos)
+]).then(([trumpworldGraph, rdfGraph, skosGraph]) => {
+  app.use('/api/model.json', dataSourceRoute(() => (
+    new JunoGraphRouter([
+      createGraph(
+        createHandlerAdapter(new MemoryGraphAdapter(trumpworldGraph, { user: 'test-user' })),
+        {
+          key: 'trump-world',
+          label: 'Trump World',
+          domains: [/^http:\/\/juno\.network\/trumpworld/],
+        }
+      ),
+      createGraph(
+        createHandlerAdapter(new MemoryGraphAdapter(rdfGraph, { user: 'test-user' })),
+        {
+          key: 'rdf',
+          domains: [/^rdf:/],
+        }
+      ),
+      createGraph(
+        createHandlerAdapter(new MemoryGraphAdapter(skosGraph, { user: 'test-user' })),
+        {
+          key: 'skos',
+          domains: [/^skos:/],
+        }
+      )
+    ])
+  )));
 
   // Error handling
   // app.use((err, req, res, next) => {

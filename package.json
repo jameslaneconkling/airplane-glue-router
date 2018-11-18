@@ -4,14 +4,14 @@
   "description": "falcor router for juno knowledge graphs",
   "main": "dist/index.js",
   "scripts": {
-    "lint": "tslint src/",
-    "test": "NODE_ENV=test ts-node test/ | tap-summary",
-    "validate": "npm run lint && npm run test",
+    "lint": "tslint ./src/**/*.ts",
     "clean": "rm -r ./dist",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
     "build": "npm run clean && tsc",
     "build:tests": "tsc --project tsconfig-test.json",
-    "start": "NODE_ENV=production node app/index.js",
+    "test": "npm run build:tests && NODE_ENV=test node test_dist/test/ | tap-summary",
+    "validate": "npm run lint && npm run test",
+    "start": "NODE_ENV=production node dist/index.js",
     "dropDB": "rm -r ./level",
     "seedDB": "node ./lib/seed_db.js",
     "dumpDB": "node ./lib/dump_db.js",
@@ -33,9 +33,9 @@
     "morgan": "^1.9.1",
     "query-string": "^6.2.0",
     "ramda": "^0.21.0",
-    "request": "^2.85.0",
+    "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
-    "rxjs": "^6.3.2"
+    "rxjs": "^6.3.3"
   },
   "devDependencies": {
     "@types/express": "^4.16.0",

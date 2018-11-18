@@ -1,6 +1,7 @@
 import test from 'tape';
-import { ContextMap, AdapterSentinel, AdapterAtom } from "../types";
+import { AdapterSentinel, AdapterAtom } from "../types";
 import { toPairs } from "ramda";
+import { ContextMap } from './rdf';
 
 // const context: ContextMap = {
 //   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
