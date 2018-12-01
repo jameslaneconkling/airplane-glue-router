@@ -2,7 +2,7 @@ import {
   range, unnest, xprod,
 } from 'ramda';
 import { Path } from 'falcor';
-import { StandardRange, Atom, Ref, ErrorSentinel } from 'falcor-router';
+import { StandardRange, Atom, Ref, ErrorSentinel, Primitive } from 'falcor-router';
 
 
 /**
@@ -31,7 +31,7 @@ export const expandTriples = (
  */
 export const range2LimitOffset = ({ from, to }: StandardRange) => ({ offset: from, limit: to + 1 - from, levelGraphLimit: to + 1 });
 
-export const $atom = (value: string | boolean | number | null, dataType?: string, language?: string): Atom => {
+export const $atom = (value: any, dataType?: string, language?: string): Atom => {
   const atom: Atom = { $type: 'atom', value };
 
   if (dataType && dataType !== 'xsd:string') {

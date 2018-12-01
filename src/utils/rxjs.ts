@@ -9,9 +9,6 @@ export const difference = <T, R>(from: R[], id: (item: T) => R) => reduce<T, Set
 }, new Set(from));
 
 
-export const collect = <T>() => reduce<T, T[]>((acc, item) => (acc.push(item), acc), []);
-
-
 // from Reactive-Extensions (rx v4) rx-node.fromStream()
 // https://github.com/Reactive-Extensions/rx-node/blob/master/index.js
 export const fromStream = <T>(stream: NodeJS.ReadableStream): Observable<T> => {

@@ -55,7 +55,7 @@ declare module 'falcor-router' {
 
   export type Primitive = string | boolean | number | null;
 
-  export type Atom = { $type: 'atom', value: Primitive, $lang?: string, $dataType?: string }
+  export type Atom = { $type: 'atom', value: any, $lang?: string, $dataType?: string }
 
   export type Ref = { $type: 'ref', value: Path }
 

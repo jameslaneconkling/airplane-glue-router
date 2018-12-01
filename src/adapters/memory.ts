@@ -3,13 +3,13 @@ import levelgraph from 'levelgraph';
 import levelgraphN3 from 'levelgraph-n3';
 import memdown from 'memdown';
 import { from, merge, Subject } from "rxjs";
-import { mergeMap, map, count, skip, take, multicast, refCount } from 'rxjs/operators';
-import { Search, GraphAdapterQueryHandlers, AdapterSearchResponse, AdapterSearchCountResponse, AdapterTripleResponse, AdapterTripleCountResponse } from '../types';
-import { context } from '../utils/rdf';
+import { mergeMap, map, count as countStream, skip, take, multicast, refCount, toArray, distinct } from 'rxjs/operators';
+import { Search, GraphAdapterQueryHandlers, AdapterSearchResponse, AdapterSearchCountResponse, AdapterTripleResponse, AdapterTripleCountResponse, AdapterPredicateListResponse, AdapterTypeListResponse, AdapterAtom } from '../types';
+import { context, parseObject } from '../utils/rdf';
 import { range2LimitOffset } from '../utils/falcor';
 import { fromStream } from '../utils/rxjs';
 import { cartesianProd } from '../utils/misc';
-import { xprod } from 'ramda';
+import { xprod, prop } from 'ramda';
 import { StandardRange } from 'falcor-router';
 
 
@@ -23,16 +23,16 @@ type RequestMetadata = {
 };
 
 
-class MemoryGraphAdapter implements GraphAdapterQueryHandlers {
-  public batched: true = true
-
+export class MemoryGraphAdapter implements GraphAdapterQueryHandlers {
   private db: LevelGraph
+  private request: RequestMetadata
 
   constructor(db: LevelGraph, request: RequestMetadata) {
     this.db = db;
+    this.request = request;
   }
 
-  public static createStore(n3: string) {
+  public static createAdapter(n3: string) {
     return new Promise<LevelGraph>((resolve, reject) => {
       (memdown as any).clearGlobalStore();
   
@@ -48,45 +48,41 @@ class MemoryGraphAdapter implements GraphAdapterQueryHandlers {
     });
   }
 
-  public search(key: string, { type }: Search, ranges: StandardRange[]) {
-    // console.log('search');
-    return from(ranges).pipe(
-      mergeMap((range) => {
-        const { offset, levelGraphLimit } = range2LimitOffset(range);
+  public search(key: string, search: Search, ranges: StandardRange[], count: boolean) {
+    if (!count) {
+      return from(ranges).pipe(
+        mergeMap((range) => {
+          const { offset, levelGraphLimit } = range2LimitOffset(range);
 
-        return fromStream<{ subject: string }>(
-          this.db.getStream({
-            predicate: `${context.rdf}type`,
-            object: type,
-            limit: levelGraphLimit,
-            offset,
-          })
-        ).pipe(
-          map(({ subject }, idx) => ({
-            type: 'search',
-            key,
-            index: offset + idx,
-            uri: subject,
-          } as AdapterSearchResponse)),
-        );
-      })
-    );
-  }
+          return fromStream<{ subject: string }>(
+            this.db.getStream({
+              predicate: `${context.rdf}type`,
+              object: search.type,
+              limit: levelGraphLimit,
+              offset,
+            })
+          ).pipe(
+            map(({ subject }, idx) => ({
+              type: 'search',
+              key,
+              index: offset + idx,
+              uri: subject,
+            } as AdapterSearchResponse)),
+          );
+        })
+      );
+    } else if (ranges.length === 0) {
+      return fromStream(
+        this.db.getStream({
+          predicate: `${context.rdf}type`,
+          object: search.type
+        })
+      ).pipe(
+        countStream(),
+        map((count) => ({ type: 'search-count', key, count } as AdapterSearchCountResponse))
+      );
+    }
 
-  public searchCount(key: string, search: Search) {
-    // console.log('search count', search);
-    return fromStream(
-      this.db.getStream({
-        predicate: `${context.rdf}type`,
-        object: search.type
-      })
-    ).pipe(
-      count(),
-      map((count) => ({ type: 'search-count', key, count } as AdapterSearchCountResponse))
-    );
-  }
-
-  public searchWithCount(key: string, search: Search, ranges: StandardRange[]) {
     const search$ = fromStream(
       this.db.getStream({
         predicate: `${context.rdf}type`,
@@ -114,61 +110,59 @@ class MemoryGraphAdapter implements GraphAdapterQueryHandlers {
         })
       ),
       search$.pipe(
-        count(),
+        countStream(),
         map((count) => ({ type: 'search-count', key, count } as AdapterSearchCountResponse))
       )
     );
   }
 
-  public triples(subjects: string[], predicates: string[], ranges: StandardRange[]) {
+  public triples(subjects: string[], predicates: string[], ranges: StandardRange[], count: boolean) {
     // TODO - compile entire s/p/r into a single query
-    // TODO - catch deep s/p/r/p/r/p/r... patterns 
-    return from(cartesianProd(subjects, predicates, ranges)).pipe(
-      mergeMap(([subject, predicate, range]) => {
-        const { offset, levelGraphLimit } = range2LimitOffset(range);
+    // TODO - catch deep s/p/r/p/r/p/r... patterns
+    if (!count) {
+      return from(cartesianProd(subjects, predicates, ranges)).pipe(
+        mergeMap(([subject, predicate, range]) => {
+          const { offset, levelGraphLimit } = range2LimitOffset(range);
+  
+          return fromStream<{ object: string }>(
+            this.db.getStream({
+              subject,
+              predicate,
+              limit: levelGraphLimit,
+              offset
+            })
+          ).pipe(
+            map(({ object }, index) => ({
+              type: 'triple',
+              subject,
+              predicate,
+              index: offset + index,
+              object,
+            } as AdapterTripleResponse))
+          );
+        }),
+      );
+    } else if (ranges.length === 0) {
+      return from(xprod(subjects, predicates)).pipe(
+        mergeMap(([subject, predicate]) => {
+          return fromStream(
+            this.db.getStream({
+              subject,
+              predicate,
+            })
+          ).pipe(
+            countStream(),
+            map((count) => ({
+              type: 'triple-count',
+              subject,
+              predicate,
+              count
+            } as AdapterTripleCountResponse))
+          );
+        })
+      );
+    }
 
-        return fromStream<{ object: string }>(
-          this.db.getStream({
-            subject,
-            predicate,
-            limit: levelGraphLimit,
-            offset
-          })
-        ).pipe(
-          map(({ object }, index) => ({
-            type: 'triple',
-            subject,
-            predicate,
-            index: offset + index,
-            object,
-          } as AdapterTripleResponse))
-        );
-      }),
-    );
-  }
-
-  public triplesCount(subjects: string[], predicates: string[]) {
-    return from(xprod(subjects, predicates)).pipe(
-      mergeMap(([subject, predicate]) => {
-        return fromStream(
-          this.db.getStream({
-            subject,
-            predicate,
-          })
-        ).pipe(
-          count(),
-          map((count) => ({
-            type: 'triple-count',
-            subject,
-            predicate,
-            count
-          } as AdapterTripleCountResponse))
-        );
-      })
-    );
-  }
-
-  public triplesWithCount(subjects: string[], predicates: string[], ranges: StandardRange[]) {
     return from(xprod(subjects, predicates)).pipe(
       mergeMap(([subject, predicate]) => {
         const triples$ = fromStream<{ subject: string, predicate: string, object: string }>(
@@ -199,7 +193,7 @@ class MemoryGraphAdapter implements GraphAdapterQueryHandlers {
             })
           ),
           triples$.pipe(
-            count(),
+            countStream(),
             map((count) => ({ type: 'triple-count', subject, predicate, count } as AdapterTripleCountResponse))
           )
         );
@@ -207,61 +201,84 @@ class MemoryGraphAdapter implements GraphAdapterQueryHandlers {
     );
   }
 
-  // getTypes() {
-  //   return fromStream(
-  //     db.searchStream([
-  //       {
-  //         predicate: `${rdf}type`,
-  //         object: db.v('type')
-  //       },
-  //       {
-  //         subject: db.v('type'),
-  //         predicate: `${skos}prefLabel`,
-  //         object: db.v('label')
-  //       }
-  //     ])
-  //   )
-  //     .map(({ type, label }) => ({
-  //       uri: type,
-  //       label: getValue(label),
-  //       lang: getLanguage(label)
-  //     }))
-  //     .toArray();
-  // },
+  public getTypes() {
+    // TODO - should we use something more specific than rdfs:Class to find resource types?  juno:ResourceClass?
+    return fromStream<{ type: string, label: string }>(
+      this.db.searchStream([
+        {
+          subject: this.db.v('type'),
+          predicate: `${context.rdf}type`,
+          object: `${context.rdfs}Class`
+        },
+        {
+          subject: this.db.v('type'),
+          predicate: `${context.skos}prefLabel`,
+          object: this.db.v('label')
+        }
+      ])
+    ).pipe(
+      toArray(),
+      map((resourceTypes) => ({
+        type: 'type-list',
+        resourceTypes: resourceTypes.map(({ type, label }) => {
+          const { value, language } = parseObject(label) as AdapterAtom;
+          return language ? {
+              uri: type,
+              label: value,
+              language
+            } : {
+              uri: type,
+              label: value,
+            };
+        })
+      } as AdapterTypeListResponse))
+    );
+  }
 
-  // getPredicates(types) {
-  //   return Observable.of(...types)
-  //     .mergeMap((type) => {
-  //       return fromStream(
-  //         db.searchStream(
-  //           [
-  //             {
-  //               subject: db.v('predicate'),
-  //               predicate: `${rdfs}domain`,
-  //               object: type,
-  //             },
-  //             {
-  //               subject: db.v('predicate'),
-  //               predicate: `${skos}prefLabel`,
-  //               object: db.v('label')
-  //             }
-  //           ],
-  //           // { limit: 100 }
-  //           {}
-  //         )
-  //       )
-  //         .distinct(prop('predicate'))
-  //         .reduce((acc, { predicate, label }) => {
-  //           acc.predicates.push({
-  //             uri: predicate,
-  //             label: getValue(label),
-  //             lang: getLanguage(label)
-  //           });
-  //           return acc;
-  //         }, { type, predicates: [] });
-  //     });
-  // }
+  public getPredicates(types: string[]) {
+    return from(types).pipe(
+      mergeMap((type) => {
+        return fromStream<{ predicate: string, label: string, range: string }>(
+          this.db.searchStream([{
+              subject: this.db.v('predicate'),
+              predicate: `${context.rdfs}domain`,
+              object: type,
+            }, {
+              subject: this.db.v('predicate'),
+              predicate: `${context.rdfs}label`,
+              object: this.db.v('label')
+            }, {
+              subject: this.db.v('predicate'),
+              predicate: `${context.rdfs}range`,
+              object: this.db.v('range')
+            }],
+            {} /* { limit: 100 } */
+          )
+        ).pipe(
+          distinct(prop('predicate')),
+          toArray(),
+          map((predicates) => {
+            return {
+              type: 'predicate-list',
+              resourceType: type,
+              predicates: predicates.map(({ predicate, label, range }) => {
+                // TODO - group ranges
+                const { value, language } = parseObject(label) as AdapterAtom;
+                return language ? {
+                    uri: predicate,
+                    label: value,
+                    range,
+                    language,
+                  } : {
+                    uri: predicate,
+                    label: value,
+                    range,
+                  };
+              })
+            } as AdapterPredicateListResponse;
+          })
+        )
+      })
+    );
+  }
 }
-
-
-export default MemoryGraphAdapter;

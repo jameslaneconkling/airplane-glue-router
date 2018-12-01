@@ -1,7 +1,6 @@
 import test from 'tape';
-import { setupTestRouter, testN3, assertFailure, context, schemaN3 } from '../utils/setup';
-import createRouter, { createGraph, createHandlerAdapter } from '../../src/falcor/index';
-import MemoryGraphAdapter from '../../src/adapters/memory';
+import { setupTestRouter, testN3, assertFailure, context, schemaN3 } from '../../utils/setup';
+import { createRouter, MemoryGraphAdapter, createGraph, createHandlerAdapter } from '../../../src';
 
 
 test('[Resource Routes] Should return object literals', async (assert) => {
@@ -100,6 +99,43 @@ test('[Resource Routes] Should return object relationships', async (assert) => {
 });
 
 
+test('[Resource Routes] Should return object uris', async (assert) => {
+  assert.plan(1);
+  const router = await setupTestRouter(testN3);
+
+  const expectedResponse = {
+    resource: {
+      [`${context.test}james`]: {
+        [`${context.schema}sibling`]: {
+          0: { $type: 'ref', value: ['resource', `${context.test}micah`] },
+          1: { $type: 'ref', value: ['resource', `${context.test}parker`] },
+        }
+      },
+      [`${context.test}micah`]: {
+        uri: `${context.test}micah`,
+        [`${context.rdfs}label`]: {
+          0: { $type: 'atom', value: 'Micah Conkling', $lang: 'en' }
+        }
+      },
+      [`${context.test}parker`]: {
+        uri: `${context.test}parker`,
+        [`${context.rdfs}label`]: {
+          0: { $type: 'atom', value: 'Parker Taylor', $lang: 'en' }
+        }
+      }
+    }
+  };
+
+  router.get([
+    ['resource', `${context.test}james`, `${context.schema}sibling`, { to: 1 }, 'uri'],
+    ['resource', `${context.test}james`, `${context.schema}sibling`, { to: 1 }, `${context.rdfs}label`, 0],
+  ])
+    .subscribe((res) => {
+      assert.deepEqual(res.jsonGraph, expectedResponse);
+    }, assertFailure(assert));
+});
+
+
 test('[Resource Routes] Should return resources from multiple graph adapters', async (assert) => {
   assert.plan(1);
 
@@ -107,14 +143,14 @@ test('[Resource Routes] Should return resources from multiple graph adapters', a
 
   const router = new JunoGraphRouter([
     createGraph(
-      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createStore(testN3), { user: 'test-user' })),
+      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createAdapter(testN3), { user: 'test-user' })),
       {
         key: 'test',
         domains: [/^http:\/\/junonetwork\.com\/test/],
       }
     ),
     createGraph(
-      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createStore(schemaN3), { user: 'test-user' })),
+      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createAdapter(schemaN3), { user: 'test-user' })),
       {
         key: 'schema',
         domains: [/^http:\/\/schema\.org/],

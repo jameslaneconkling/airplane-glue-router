@@ -1,203 +1,319 @@
-import { Subject, throwError, Observable, merge, } from "rxjs";
-import { filter } from "rxjs/operators";
+import {
+  GraphDescription,
+  AdapterResponse,
+  AdapterQuery,
+  AdapterRequest,
+  GraphAdapterQueryHandlers,
+  GraphAdapter,
+  GraphHandler,
+  AdapterSearchResponse,
+  AdapterSearchCountResponse,
+  AdapterTripleResponse,
+  AdapterTripleCountResponse,
+  Request2Response,
+  Search,
+  AdapterTypeListResponse,
+  AdapterPredicateListResponse
+} from '../types';
+import { values, any } from 'ramda';
+import { Observable, Subject, merge, empty } from 'rxjs';
+import { stringify } from 'query-string';
+import { filter, concat } from 'rxjs/operators';
+import { neverever, cartesianProd } from '../utils/misc';
 import { StandardRange } from "falcor-router";
-import { GraphAdapterQueryHandlers, AdapterSearchCountResponse, AdapterTripleResponse, AdapterSearchResponse, Search, AdapterTripleCountResponse, AdapterRequest, AdapterQuery, AdapterResponse } from "../types";
-import { ranges2List } from "../utils/falcor";
-import { clone, toPairs, values } from "ramda";
-import { stringify } from "query-string";
+import { ranges2List } from '../utils/falcor';
 
-
-export const isExpectedSearchResponse = (searchKey: string, indices: Set<number>) => (
-  response: AdapterResponse
-): response is AdapterSearchResponse => response.type === 'search' && response.key === searchKey && indices.has(response.index);
-export const isExpectedSearchCountResponse = (searchKey: string) => (
-  response: AdapterResponse
-): response is AdapterSearchCountResponse => response.type === 'search-count' && response.key === searchKey;
-export const isExpectedTripleResponse = (subjects: Set<string>, predicates: Set<string>, indices: Set<number>) => (
-  response: AdapterResponse
-): response is AdapterTripleResponse => response.type === 'triple' && subjects.has(response.subject) && predicates.has(response.predicate) && indices.has(response.index)
-export const isExpectedTripleCountResponse = (subjects: Set<string>, predicates: Set<string>) => (
-  response: AdapterResponse
-): response is AdapterTripleCountResponse => response.type === 'triple-count' && subjects.has(response.subject) && predicates.has(response.predicate);
 
 export class AbstractGraphAdapterQueryHandlers implements GraphAdapterQueryHandlers {
-  search(_searchKey: string, _serach: Search, _ranges: StandardRange[]) {
-    return throwError('Unimplemented Error') as Observable<AdapterSearchResponse>;
+  public search(_searchKey: string, _serach: Search, _ranges: StandardRange[], _count: boolean) {
+    return empty() as Observable<AdapterSearchResponse | AdapterSearchCountResponse>;
   }
 
-  searchCount(_searchKey: string, _serach: Search) {
-    return throwError('Unimplemented Error') as Observable<AdapterSearchCountResponse>;
+  public triples(_subjects: string[], _predicates: string[], _ranges: StandardRange[], _count: boolean) {
+    return empty() as Observable<AdapterTripleResponse | AdapterTripleCountResponse>;
   }
 
-  triples() {
-    return throwError('Unimplemented Error') as Observable<AdapterTripleResponse>;
+  public getTypes() {
+    return empty() as Observable<AdapterTypeListResponse>;
   }
 
-  triplesCount() {
-    return throwError('Unimplemented Error') as Observable<AdapterTripleCountResponse>;
-  }
-
-  searchWithCount(_searchKey: string, _search: Search, _ranges: StandardRange[]) {
-    return throwError('Unimplemented Error') as Observable<AdapterSearchResponse | AdapterSearchCountResponse>;
-  }
-
-  triplesWithCount(_subjects: string[], _predicates: string[], _ranges: StandardRange[]) {
-    return throwError('Unimplemented Error') as Observable<AdapterTripleResponse | AdapterTripleCountResponse>;
+  public getPredicates(_types: string[]) {
+    return empty() as Observable<AdapterPredicateListResponse>;
   }
 }
 
 
-// batching occurs per router request, per graph, per time interval
-export const createBatchedQuery = <Q, B, R>(
-  reducer: (batchedQuery: B, query: Q) => B,
-  initialValue: B,
-  handler: (batchedQuery: B) => Observable<R>,
-  { interval = 0 }: Partial<{ interval: number }> = {},
-) => {
+export const requestReducer = (query: AdapterQuery, request: AdapterRequest) => {
+  if (request.type === 'search') {
+    if (!query.searches[request.key]) {
+      query.searches[request.key] = {
+        key: request.key,
+        search: request.search,
+        ranges: request.ranges,
+        count: false
+      }; 
+    } else {
+      query.searches[request.key].ranges.push(...request.ranges);
+    }
+  } else if (request.type === 'search-count') {
+    if (!query.searches[request.key]) {
+      query.searches[request.key] = {
+        key: request.key,
+        search: request.search,
+        ranges: [],
+        count: true,
+      };
+    } else {
+      query.searches[request.key].count = true;
+    }
+  } else if (request.type === 'triple') {
+    // TODO - make smarter subject/predicate equality matching, possibly by sorting: ['test:1', 'test:2'] === ['test:2', 'test:1']
+    const resourceKey = stringify([request.subjects, request.predicates]);
+    if (!query.resources[resourceKey]) {
+      query.resources[resourceKey] = {
+        subjects: request.subjects,
+        predicates: request.predicates,
+        ranges: request.ranges,
+        count: false,
+      }
+    } else {
+      // TODO - dedup ranges after combining
+      query.resources[resourceKey].ranges.push(...request.ranges);
+    }
+  } else if (request.type === 'triple-count') {
+    const resourceKey = stringify([request.subjects, request.predicates]);
+    if (!query.resources[resourceKey]) {
+      query.resources[resourceKey] = {
+        subjects: request.subjects,
+        predicates: request.predicates,
+        ranges: [],
+        count: true,
+      }
+    } else {
+      // TODO - dedup ranges after combining
+      query.resources[resourceKey].count = true;
+    }
+  } else if (request.type === 'type-list') {
+    query.resourceTypes.list = true;
+  } else if (request.type === 'predicate-list') {
+    query.resourceTypes.types.push(...request.resourceTypes);
+  } else {
+    return neverever(request)
+  }
+
+  return query;
+};
+
+
+export const createGraphHandler = (
+  graphAdapter: GraphAdapter
+): GraphHandler => {
+  // batching occurs per router request, per graph, per time interval
   let batch: {
-    batchedQuery: B,
-    source$: Subject<R>
+    query: AdapterQuery,
+    source$: Subject<AdapterResponse>
   } | undefined;
 
-  return (query: Q) => {
+  return <Request extends AdapterRequest = AdapterRequest>(request: AdapterRequest) => {
     if (batch === undefined) {
       batch = {
-        batchedQuery: reducer(clone(initialValue), query),
-        source$: new Subject<R>(),
+        query: requestReducer({ searches: {}, resources: {}, resourceTypes: { list: false, types: [] } }, request),
+        source$: new Subject<AdapterResponse>(),
       };
 
       setTimeout(() => {
-        handler(batch!.batchedQuery).subscribe(batch!.source$);
+        graphAdapter(batch!.query).subscribe(batch!.source$);
         batch = undefined;
-      }, interval);
+      }, 0);
     } else {
-      batch.batchedQuery = reducer(batch.batchedQuery, query);
+      batch.query = requestReducer(batch.query, request);
     }
 
-    return batch.source$;
+    const {
+      isExpectedResponse,
+      getMissingResponses,
+    } = expectedResponses<Request>(request);
+
+    return batch.source$.pipe(
+      filter(isExpectedResponse),
+      concat(new Observable<Request2Response<Request>>((observer) => {
+        getMissingResponses().forEach(observer.next.bind(observer));
+        observer.complete();
+      })),
+    );
   };
 };
 
 
-export class BatchedHandler {
-  private adapter: GraphAdapterQueryHandlers
+// export const createGraphHandler = (
+//   graphAdapter: (query: Query) => Observable<AdapterResponse>,
+//   { key, domains, label}: {
+//     key: string,
+//     domains: RegExp[],
+//     label?: string,
+//   }
+// ) => {
+//   const subject = new Subject<AdapterRequest>();
+//   const response$ = subject.pipe(
+//     bufferTime(0),
+//     map(reduce<AdapterRequest, Query>(requestReducer, { search: {}, resources: [] })),
+//     map(graphAdapter),
+//     map((requests) => graphAdapter(reduce(reducer, query, { search: {}, resources: [] })).pipe(multicast(), refCount()))
+//   );
 
-  // TODO - is batchedQuery created for each instance, or is it shared across instances? (in which case it would need to be initialized in the constructor, not inline)
-  private batchedQuery = createBatchedQuery<
-    AdapterRequest,
-    AdapterQuery,
-    AdapterSearchResponse | AdapterSearchCountResponse
-  >(
-    (batchedQuery, query) => {
-      if (query.type === 'search') {
-        if (!batchedQuery.searches[query.key]) {
-          batchedQuery.searches[query.key] = {
-            search: query.search,
-            ranges: query.ranges,
-            count: false
-          }; 
-        } else {
-          batchedQuery.searches[query.key].ranges.push(...query.ranges);
-        }
-      } else if (query.type === 'search-count') {
-        if (!batchedQuery.searches[query.key]) {
-          batchedQuery.searches[query.key] = {
-            search: query.search,
-            ranges: [],
-            count: true,
-          };
-        } else {
-          batchedQuery.searches[query.key].count = true;
-        }
-      } else if (query.type === 'triples') {
-        // TODO - make smarter subject/predicate equality matching, possibly by sorting: ['test:1', 'test:2'] === ['test:2', 'test:1']
-        const resourceKey = stringify([query.subjects, query.predicates]);
-        if (!batchedQuery.resources[resourceKey]) {
-          batchedQuery.resources[resourceKey] = {
-            subjects: query.subjects,
-            predicates: query.predicates,
-            ranges: query.ranges,
-            count: false,
-          }
-        } else {
-          // TODO - dedup ranges after combining
-          batchedQuery.resources[resourceKey].ranges.push(...query.ranges);
-        }
-      } else if (query.type === 'triples-count') {
-        const resourceKey = stringify([query.subjects, query.predicates]);
-        if (!batchedQuery.resources[resourceKey]) {
-          batchedQuery.resources[resourceKey] = {
-            subjects: query.subjects,
-            predicates: query.predicates,
-            ranges: [],
-            count: true,
-          }
-        } else {
-          // TODO - dedup ranges after combining
-          batchedQuery.resources[resourceKey].count = true;
-        }
-      }
+//   return {
+//     key,
+//     domains,
+//     label,
+//     handler: (request: AdapterRequest) => {
+//       subject.next(request);
+//       // each multicasted response$ stream needs to unsubscribe when its batch is done
+//       // meaning, every batch needs to create a new subject$
+//       // if this can't work, use the hybrid approach adopted by createBatchedQuery()
+//       return response$.pipe(
+//         first(),
+//         mergeAll()
+//       );
+//     }
+//   }
+// };
 
-      return batchedQuery;
-    },
-    { searches: {}, resources: {} },
-    (batchedQuery) => {
-      // NOTE - this could be the adapter interface: (query: Query) => Observable<AdapterResponse>
-      // instead of the current GraphAdapter interface
-      // the reducer reduces a stream of search/searchCount/triples/triplesCount requests into a Query
-      // the Query is compiled by the Adapter into a request
-      // meaning, an Adapter is not a set of handlers, but a function that takes a Query (currently, BatchedQuery or TripleQuery) and returns an Observable of responses
-      // BatchedHandler would become a BatchedHandler: Router --1+-> BatchedHandler --1--> Adapter
-      return merge(
-        ...toPairs(batchedQuery.searches).map(([searchKey, { search, ranges, count }]) => {
-          if (ranges.length > 0 && count) {
-            return this.adapter.searchWithCount(searchKey, search, ranges);
-          } else if (ranges.length) {
-            return this.adapter.search(searchKey, search, ranges);
-          }
-          return this.adapter.searchCount(searchKey, search);
-        }),
-        ...values(batchedQuery.resources).map(({ subjects, predicates, ranges, count }) => {
-          if (ranges.length > 0 && count) {
-            return this.adapter.triplesWithCount(subjects, predicates, ranges);
-          } else if (ranges.length) {
-            return this.adapter.triples(subjects, predicates, ranges);
-          }
-          return this.adapter.triplesCount(subjects, predicates);
-        })
-      );
+
+export const createGraph = (
+  graphAdapter: GraphAdapter,
+  { key, domains, label}: {
+    key: string,
+    domains: RegExp[],
+    label?: string,
+  }
+): GraphDescription => ({
+  key,
+  domains,
+  label,
+  handler: createGraphHandler(graphAdapter)
+});
+
+
+export const createHandlerAdapter = (adapter: GraphAdapterQueryHandlers): GraphAdapter =>
+  (query: AdapterQuery): Observable<AdapterResponse> => {
+    return merge(
+      ...values(query.searches).map(({ key, search, ranges, count }) => adapter.search(key, search, ranges, count)),
+      ...values(query.resources).map(({ subjects, predicates, ranges, count }) => adapter.triples(subjects, predicates, ranges, count)),
+      query.resourceTypes.list ? adapter.getTypes() : empty(),
+      adapter.getPredicates(query.resourceTypes.types)
+    );
+  };
+
+
+export const matchKey = (graphs: GraphDescription[], adapterKey: string) => (
+  graphs.find((adapter) => adapterKey === adapter.key)
+);
+
+export const matchDomain = (graphs: GraphDescription[], domainName: string) => (
+  graphs.find(({ domains }) => any((domain) => domain.test(domainName), domains))
+);
+
+export const missingGraph = Symbol('missing_graph');
+
+
+export const groupUrisByGraph = (graphs: GraphDescription[], subjects: string[]) => {
+  return values(subjects.reduce<{
+    [key: string]: {
+      handler: GraphHandler,
+      subjects: string[],
+      key: string
     }
-  )
+  }>((grouped, uri) => {
+    const graphDescription = matchDomain(graphs, uri);
+    if (graphDescription === undefined) {
+      // TODO - handle unmatched resources?
+      return grouped;
+    }
 
-  constructor(adapter: GraphAdapterQueryHandlers) {
-    this.adapter = adapter;
+    if (grouped[graphDescription.key]) {
+      grouped[graphDescription.key].subjects.push(uri);
+    } else {
+      grouped[graphDescription.key] = {
+        handler: graphDescription.handler,
+        key: graphDescription.key,
+        subjects: [uri]
+      };
+    }
+
+    return grouped;
+  }, {}));
+};
+
+
+export const expectedResponses = <Request extends AdapterRequest>(
+  request: AdapterRequest
+): {
+  isExpectedResponse: (response: AdapterResponse) => response is Request2Response<Request>,
+  getMissingResponses: () => Map<string, Request2Response<Request>>,
+} => {
+  if (request.type === 'search') {
+    const expected = ranges2List(request.ranges)
+      .reduce((acc, index) => {
+        const response: AdapterSearchResponse = ({ type: 'search', key: request.key, index, uri: null });
+        acc.set(stringify(response), response);
+        return acc;
+      }, new Map<string, AdapterSearchResponse>());
+
+    return {
+      isExpectedResponse: (response: AdapterResponse): response is AdapterSearchResponse => (
+        response.type === 'search' &&
+        expected.delete(stringify({ type: 'search', key: response.key, index: response.index, uri: null }))
+      ),
+      getMissingResponses: () => expected,
+    };
+  } else if (request.type === 'search-count') {
+    return {
+      isExpectedResponse: (response: AdapterResponse): response is AdapterSearchCountResponse => (
+        response.type === 'search-count' && response.key === request.key
+      ),
+      getMissingResponses: () => new Map(),
+    };
+  } else if (request.type === 'triple') {
+    const expected = cartesianProd(request.subjects, request.predicates, ranges2List(request.ranges))
+      .reduce((acc, [subject, predicate, index]) => {
+        const response: AdapterTripleResponse = ({ type: 'triple', subject, predicate, index, object: null });
+        acc.set(stringify(response), response);
+        return acc;
+      }, new Map<string, AdapterTripleResponse>());
+
+    return {
+      isExpectedResponse: (response: AdapterResponse): response is AdapterTripleResponse => (
+        response.type === 'triple' &&
+        expected.delete(stringify({ type: 'triple', subject: response.subject, predicate: response.predicate, index: response.index, object: null }))
+      ),
+      getMissingResponses: () => expected,
+    };
+  } else if (request.type === 'triple-count') {
+    const expectedSubjects = new Set(request.subjects);
+    const expectedPredicates = new Set(request.predicates);
+
+    return {
+      isExpectedResponse: (response: AdapterResponse): response is AdapterTripleCountResponse => (
+        response.type === 'triple-count' && expectedSubjects.has(response.subject) && expectedPredicates.has(response.predicate)
+      ),
+      getMissingResponses: () => new Map(),
+    };
+  } else if (request.type === 'type-list') {
+    return {
+      isExpectedResponse: (response: AdapterResponse): response is AdapterTypeListResponse => (
+        response.type === 'type-list'
+      ),
+      getMissingResponses: () => new Map(),
+    }
+  } else if (request.type === 'predicate-list') {
+    const expected = new Set(request.resourceTypes);
+    return {
+      isExpectedResponse: (response: AdapterResponse): response is AdapterPredicateListResponse => (
+        response.type === 'predicate-list' && expected.has(response.resourceType)
+      ),
+      getMissingResponses: () => new Map(),
+    }
   }
 
-  // TODO - the BatchedHandler interface filters the results of batchedQuery.  This needs better pattern matching to ensure the return values are filtered down to what each handler (search/searchCount) is expecting
-  // TODO - should batchedQuery() be replaced w/ a general batchedRequest(), complicating the reducer function, but allowing the handler to handle more things at once
-  search(key: string, search: Search, ranges: StandardRange[]) {
-    return this.batchedQuery({ type: 'search', key, search, ranges }).pipe(
-      filter(isExpectedSearchResponse(key, new Set(ranges2List(ranges))))
-    );
-  }
-
-  searchCount(key: string, search: Search) {
-    return this.batchedQuery({ type: 'search-count', key, search }).pipe(
-      filter(isExpectedSearchCountResponse(key))
-    );
-  }
-
-  triples(subjects: string[], predicates: string[], ranges: StandardRange[]) {
-    // return this.adapter.triples(subjects, predicates, ranges);
-    return this.batchedQuery({ type: 'triples', subjects, predicates, ranges }).pipe(
-      filter(isExpectedTripleResponse(new Set(subjects), new Set(predicates), new Set(ranges2List(ranges))))
-    );
-  }
-
-  triplesCount(subjects: string[], predicates: string[]) {
-    // return this.adapter.triplesCount(subjects, predicates);
-    return this.batchedQuery({ type: 'triples-count', subjects, predicates }).pipe(
-      filter(isExpectedTripleCountResponse(new Set(subjects), new Set(predicates)))
-    );
-  }
-}
+  return neverever(request);
+};

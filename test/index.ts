@@ -1,5 +1,5 @@
-import './integration/graph-routes';
-import './integration/resource-routes';
-import './integration/adapter';
-import './integration/batched-handler';
+import './integration/routes/graph-search-routes';
+import './integration/routes/graph-ontology-routes';
+import './integration/routes/resource-routes';
+import './integration/graph-handler';
 import './unit/utils';

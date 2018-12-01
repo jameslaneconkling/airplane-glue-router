@@ -9,3 +9,4 @@ export const cartesianProd = <A, B, C>(a: A[], b: B[], c: C[]) => (
   }, [])
 );
 
+export const neverever = (never: never) => never;

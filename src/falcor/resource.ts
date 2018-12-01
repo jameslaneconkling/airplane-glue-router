@@ -1,38 +1,26 @@
 import {
   from,
-  Observable,
 } from "rxjs";
 import {
   mergeMap,
   map,
   bufferTime,
-  filter,
-  concat,
 } from 'rxjs/operators';
-import { IJunoRouter, AdapterTripleResponse } from "../types";
+import { IJunoRouter } from "../types";
 import { Route, StandardRange } from "falcor-router";
-import { groupUrisByGraph, isExpectedTripleCountResponse, expectedTripleResponses } from "../utils/adapter";
 import { parseObject } from "../utils/rdf";
 import { $error, $ref, $atom } from "../utils/falcor";
+import { groupUrisByGraph } from "../adapters/adapter";
 
 
-const resourceRoutes = [
+export const resourceRoutes = [
   {
     route: 'resource[{keys:subjects}][{keys:predicates}][{ranges:ranges}]',
     get([_, subjects, predicates, ranges]) {
       return from(groupUrisByGraph(this.graphs, subjects)).pipe(
         mergeMap(({ handler, key, subjects }) => {
-          const {
-            isExpectedTripleResponse,
-            getMissingTripleResponses,
-          } = expectedTripleResponses(subjects, predicates, ranges);
 
-          return handler({ type: 'triples', subjects, predicates, ranges }).pipe(
-            filter(isExpectedTripleResponse),
-            concat(new Observable<AdapterTripleResponse>((observer) => {
-              getMissingTripleResponses().forEach(observer.next.bind(observer));
-              observer.complete();
-            })),
+          return handler({ type: 'triple', subjects, predicates, ranges }).pipe(
             map(({ subject, predicate, index, object }) => {
               if (object === null || object === undefined || typeof object === 'string') {
                 object = parseObject(object);
@@ -70,8 +58,7 @@ const resourceRoutes = [
     route: 'resource[{keys:subjects}][{keys:predicates}].length',
     get([_, subjects, predicates]) {
       return from(groupUrisByGraph(this.graphs, subjects)).pipe(
-        mergeMap(({ handler, subjects }) => handler({ type: 'triples-count', subjects, predicates })),
-        filter(isExpectedTripleCountResponse(new Set(subjects), new Set(predicates))),
+        mergeMap(({ handler, subjects }) => handler({ type: 'triple-count', subjects, predicates })),
         map(({ subject, predicate, count }) => ({
           path: ['resource', subject, predicate, 'length'],
           value: $atom(count),
@@ -80,7 +67,15 @@ const resourceRoutes = [
       );
     }
   } as Route<[string, string[], string[]], IJunoRouter>,
+  {
+    route: 'resource[{keys:subjects}]uri',
+    get([_, subjects]) {
+      return from(subjects).pipe(
+        map(uri => ({
+          path: ['resource', uri, 'uri'],
+          value: uri
+        }))
+      );
+    }
+  } as Route<[string, string[]], IJunoRouter>,
 ];
-
-
-export default resourceRoutes;

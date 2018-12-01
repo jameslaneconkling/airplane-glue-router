@@ -1,5 +1,5 @@
-import createRouter, { createGraph, createHandlerAdapter } from '../../src/falcor/index';
-import MemoryGraphAdapter from '../../src/adapters/memory';
+import { createRouter, MemoryGraphAdapter } from '../../src';
+import { createGraph, createHandlerAdapter } from '../../src/adapters/adapter';
 
 
 export const context = {
@@ -90,29 +90,45 @@ export const testN3 = `
     rdfs:label "alternateName" .
 
   schema:alternateName
-    skos:prefLabel "Alternative Name"@en .
+    skos:prefLabel "Alternative Name"@en ;
+    rdfs:domain schema:Person, schema:Place ;
+    rdfs:range xsd:string .
 
   schema:birthDate
     schema:domainIncludes schema:Person ;
     schema:rangeIncludes schema:Date ;
     a rdf:Property ;
     rdfs:comment "Date of birth." ;
-    rdfs:label "birthDate" .
+    rdfs:label "birthDate" ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:date .
 
   schema:birthPlace
     a rdf:Property ;
-    rdfs:label "birthPlace" .
+    rdfs:label "birthPlace" ;
+    rdfs:domain schema:Person ;
+    rdfs:range schema:Place .
 
   schema:gender
     a rdf:Property ;
-    rdfs:label "gender" .
+    rdfs:label "gender" ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string .
 
   schema:sibling
     schema:domainIncludes schema:Person ;
     schema:rangeIncludes schema:Person ;
     a rdf:Property ;
     rdfs:comment "A sibling of this person." ;
-    rdfs:label "sibling" .
+    rdfs:label "sibling" ;
+    rdfs:domain schema:Person ;
+    rdfs:range schema:Person .
+
+  schema:Person a rdfs:Class ;
+    skos:prefLabel "Person"@en .
+
+  schema:Place a rdfs:Class ;
+    skos:prefLabel "Place" .
 `;
 
 export const schemaN3 = `
@@ -158,7 +174,7 @@ export const setupTestRouter = async (n3) => {
 
   return new JunoGraphRouter([
     createGraph(
-      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createStore(n3), { user: 'test-user' })),
+      createHandlerAdapter(new MemoryGraphAdapter(await MemoryGraphAdapter.createAdapter(n3), { user: 'test-user' })),
       {
         key: 'test',
         label: 'Test',
