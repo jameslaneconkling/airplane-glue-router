@@ -1,7 +1,8 @@
 .DS_Store
 node_modules
 
-/dist
+# TODO - don't check in dist/ once published to a proper package manager
+# /dist
 /dist_test
 /dist_examples
 
