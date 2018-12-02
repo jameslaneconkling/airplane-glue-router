@@ -1,7 +1,11 @@
 {
   "name": "juno-falcor-router",
   "version": "0.1.0",
-  "description": "falcor router for juno knowledge graphs",
+  "description": "falcor router for knowledge graphs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junonetwork/falcor-router.git"
+  },
   "main": "dist/index.js",
   "scripts": {
     "lint": "tslint src/**/*.ts",
@@ -10,9 +14,12 @@
     "build:tests": "tsc --project tsconfig-test.json",
     "test": "npm run build:tests && NODE_ENV=test node dist_test/test/ | tap-summary",
     "validate": "npm run lint && npm run test",
-    "build": "npm run clean && tsc"
+    "build": "npm run clean && tsc",
+    "deploy:patch": "npm run validate && npm run build && npm version patch && git push --follow-tags",
+    "deploy:minor": "npm run validate && npm run build && npm version minor && git push --follow-tags",
+    "deploy:major": "npm run validate && npm run build && npm version major && git push --follow-tags"
   },
-  "author": "jameslaneconkling",
+  "author": "James Conkling <james.lane.conkling@gmail.com> jameslaneconkling.github.io",
   "license": "ISC",
   "dependencies": {
     "falcor-router": "^0.8.3",
